@@ -3,6 +3,9 @@
  * This is the primary business-logic layer — all element manipulation
  * flows through here, keeping the MCP tool handlers thin.
  *
+ * All write operations return a unified {@link WriteResult} and throw
+ * structured errors ({@link RevisionConflictError}, etc.) on failure.
+ *
  * @module document-service
  */
 
@@ -18,10 +21,14 @@ import { ensureNode, countNodes } from "@academic-figure/core";
 
 import type { DocumentStore } from "../store/document-store.js";
 import { generateDocumentId, generateElementId } from "../utils/ids.js";
-import { ElementNotFoundError, RevisionConflictError } from "../utils/errors.js";
+import {
+  ElementNotFoundError,
+  RevisionConflictError,
+  InvalidElementError,
+} from "../utils/errors.js";
 
 // ---------------------------------------------------------------------------
-// Public interface
+// Public interfaces
 // ---------------------------------------------------------------------------
 
 export interface CreateDocumentInput {
@@ -61,6 +68,48 @@ export interface QueryElementsInput {
   tags?: string[];
 }
 
+/**
+ * Unified return type for all write operations.
+ */
+export interface WriteResult {
+  success: true;
+  documentId: string;
+  revision: number;
+  affectedElementIds: string[];
+  /** Additional operation-specific data (e.g. element count, grid dimensions) */
+  extra?: Record<string, unknown>;
+}
+
+/**
+ * Unified error shape returned to the MCP client.
+ */
+export interface ToolError {
+  success: false;
+  code: string;
+  message: string;
+  expectedRevision?: number;
+  currentRevision?: number;
+  details?: unknown;
+}
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function ok(
+  document: SvgDocument,
+  affectedElementIds: string[],
+  extra?: Record<string, unknown>,
+): WriteResult {
+  return {
+    success: true,
+    documentId: document.id,
+    revision: document.revision,
+    affectedElementIds,
+    ...(extra ? { extra } : {}),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Service
 // ---------------------------------------------------------------------------
@@ -72,7 +121,9 @@ export class DocumentService {
   // Document lifecycle
   // -------------------------------------------------------------------
 
-  public async createDocument(input: CreateDocumentInput): Promise<SvgDocument> {
+  public async createDocument(
+    input: CreateDocumentInput,
+  ): Promise<{ document: SvgDocument; result: WriteResult }> {
     const now = new Date().toISOString();
 
     const document: SvgDocument = {
@@ -92,10 +143,12 @@ export class DocumentService {
       },
     };
 
-    // Add background rect if specified
+    const affectedIds: string[] = [];
+
     if (input.background) {
+      const bgId = "background";
       document.root.children.push({
-        id: "background",
+        id: bgId,
         type: "rect",
         attributes: {
           x: 0,
@@ -107,10 +160,15 @@ export class DocumentService {
         metadata: { role: "environment", importance: "background" },
         children: [],
       });
+      affectedIds.push(bgId);
     }
 
     await this.store.create(document);
-    return document;
+
+    return {
+      document,
+      result: ok(document, [...affectedIds, "root"]),
+    };
   }
 
   public async getDocument(documentId: string): Promise<SvgDocument> {
@@ -129,12 +187,12 @@ export class DocumentService {
     documentId: string,
     input: CreateElementInput,
     expectedRevision?: number,
-  ): Promise<SvgNode> {
+  ): Promise<WriteResult> {
     const document = await this.store.get(documentId);
     this.checkRevision(document, expectedRevision);
 
     const parentId = input.parentId ?? "root";
-    const { node: parent } = ensureNode(document.root, parentId);
+    const { node: parent } = this.getNode(document.root, parentId);
 
     const node: SvgNode = {
       id: input.id ?? generateElementId(),
@@ -150,22 +208,45 @@ export class DocumentService {
     document.revision += 1;
     await this.store.save(document);
 
-    return node;
+    return ok(document, [node.id]);
   }
 
+  /**
+   * Batch-create elements with **transaction semantics** (all-or-nothing).
+   *
+   * All parent IDs are validated first. If any parent is missing, the
+   * operation fails before touching the document. This ensures the
+   * Agent never sees a partially-mutated tree.
+   */
   public async batchCreateElements(
     documentId: string,
     inputs: CreateElementInput[],
     expectedRevision?: number,
-  ): Promise<SvgNode[]> {
+  ): Promise<WriteResult> {
     const document = await this.store.get(documentId);
     this.checkRevision(document, expectedRevision);
 
-    const created: SvgNode[] = [];
+    // ---- Phase 1: Validate all inputs first (pre-flight) ----
+    const parents = new Map<string, SvgNode>();
+    for (let i = 0; i < inputs.length; i++) {
+      const parentId = inputs[i]!.parentId ?? "root";
+      if (!parents.has(parentId)) {
+        try {
+          parents.set(parentId, this.getNode(document.root, parentId).node);
+        } catch {
+          throw new InvalidElementError(
+            `batch_create_elements[${i}]: parent "${parentId}" not found`,
+          );
+        }
+      }
+    }
+
+    // ---- Phase 2: Create all nodes (all-or-nothing from here) ----
+    const createdIds: string[] = [];
 
     for (const input of inputs) {
       const parentId = input.parentId ?? "root";
-      const { node: parent } = ensureNode(document.root, parentId);
+      const parent = parents.get(parentId)!;
 
       const node: SvgNode = {
         id: input.id ?? generateElementId(),
@@ -178,26 +259,26 @@ export class DocumentService {
       };
 
       parent.children.push(node);
-      created.push(node);
+      createdIds.push(node.id);
     }
 
     document.revision += 1;
     await this.store.save(document);
 
-    return created;
+    return ok(document, createdIds, { count: createdIds.length });
   }
 
   public async createRepeatedElements(
     input: RepeatedElementsInput,
     expectedRevision?: number,
-  ): Promise<SvgNode[]> {
+  ): Promise<WriteResult> {
     const document = await this.store.get(input.documentId);
     this.checkRevision(document, expectedRevision);
 
     const parentId = input.parentId ?? "root";
-    const { node: parent } = ensureNode(document.root, parentId);
+    const { node: parent } = this.getNode(document.root, parentId);
 
-    const created: SvgNode[] = [];
+    const createdIds: string[] = [];
     const { rows, columns, startX, startY, stepX, stepY } = input.layout;
     const namePrefix = input.template.namePrefix ?? input.template.type;
 
@@ -219,14 +300,17 @@ export class DocumentService {
         };
 
         parent.children.push(node);
-        created.push(node);
+        createdIds.push(node.id);
       }
     }
 
     document.revision += 1;
     await this.store.save(document);
 
-    return created;
+    return ok(document, createdIds, {
+      count: createdIds.length,
+      grid: `${rows}×${columns}`,
+    });
   }
 
   public async updateElement(
@@ -234,11 +318,11 @@ export class DocumentService {
     elementId: string,
     input: UpdateElementInput,
     expectedRevision?: number,
-  ): Promise<SvgNode> {
+  ): Promise<WriteResult> {
     const document = await this.store.get(documentId);
     this.checkRevision(document, expectedRevision);
 
-    const { node } = ensureNode(document.root, elementId);
+    const { node } = this.getNode(document.root, elementId);
 
     if (input.attributes) {
       for (const [key, value] of Object.entries(input.attributes)) {
@@ -261,7 +345,7 @@ export class DocumentService {
     document.revision += 1;
     await this.store.save(document);
 
-    return node;
+    return ok(document, [elementId]);
   }
 
   public async transformElements(
@@ -269,17 +353,24 @@ export class DocumentService {
     elementIds: string[],
     transform: ElementTransform,
     expectedRevision?: number,
-  ): Promise<SvgNode[]> {
+  ): Promise<WriteResult> {
     const document = await this.store.get(documentId);
     this.checkRevision(document, expectedRevision);
 
-    const results: SvgNode[] = [];
+    // Pre-validate all element IDs
+    for (const elementId of elementIds) {
+      this.getNode(document.root, elementId);
+    }
 
     for (const elementId of elementIds) {
-      const { node } = ensureNode(document.root, elementId);
+      const { node } = this.getNode(document.root, elementId);
 
-      if (transform.translateX !== undefined || transform.translateY !== undefined) {
-        const currentTransform = (node.attributes["transform"] as string) ?? "";
+      if (
+        transform.translateX !== undefined ||
+        transform.translateY !== undefined
+      ) {
+        const currentTransform =
+          (node.attributes["transform"] as string) ?? "";
         const tx = transform.translateX ?? 0;
         const ty = transform.translateY ?? 0;
         node.attributes["transform"] =
@@ -287,7 +378,8 @@ export class DocumentService {
       }
 
       if (transform.scaleX !== undefined || transform.scaleY !== undefined) {
-        const currentTransform = (node.attributes["transform"] as string) ?? "";
+        const currentTransform =
+          (node.attributes["transform"] as string) ?? "";
         const sx = transform.scaleX ?? 1;
         const sy = transform.scaleY ?? 1;
         node.attributes["transform"] =
@@ -295,49 +387,54 @@ export class DocumentService {
       }
 
       if (transform.rotate !== undefined) {
-        const currentTransform = (node.attributes["transform"] as string) ?? "";
+        const currentTransform =
+          (node.attributes["transform"] as string) ?? "";
         node.attributes["transform"] =
           `${currentTransform} rotate(${transform.rotate})`.trim();
       }
-
-      results.push(node);
     }
 
     document.revision += 1;
     await this.store.save(document);
 
-    return results;
+    return ok(document, elementIds);
   }
 
   public async deleteElements(
     documentId: string,
     elementIds: string[],
     expectedRevision?: number,
-  ): Promise<string[]> {
+  ): Promise<WriteResult> {
     const document = await this.store.get(documentId);
     this.checkRevision(document, expectedRevision);
+
+    // Pre-validate all exist and are not root
+    for (const elementId of elementIds) {
+      const loc = this.getNode(document.root, elementId);
+      if (!loc.parent) {
+        throw new InvalidElementError(
+          `Cannot delete root element: ${elementId}`,
+        );
+      }
+    }
 
     const deleted: string[] = [];
 
     for (const elementId of elementIds) {
-      const location = ensureNode(document.root, elementId);
-      if (!location.parent) {
-        throw new Error(`Cannot delete root element`);
-      }
+      const loc = this.getNode(document.root, elementId);
+      if (!loc.parent) continue; // should not happen after pre-validation
 
-      const idx = location.parent.children.indexOf(location.node);
+      const idx = loc.parent.children.indexOf(loc.node);
       if (idx !== -1) {
-        location.parent.children.splice(idx, 1);
+        loc.parent.children.splice(idx, 1);
         deleted.push(elementId);
       }
     }
 
-    if (deleted.length > 0) {
-      document.revision += 1;
-      await this.store.save(document);
-    }
+    document.revision += 1;
+    await this.store.save(document);
 
-    return deleted;
+    return ok(document, deleted, { deletedCount: deleted.length });
   }
 
   // -------------------------------------------------------------------
@@ -356,7 +453,7 @@ export class DocumentService {
     const document = await this.store.get(documentId);
 
     const startNode = parentId
-      ? ensureNode(document.root, parentId).node
+      ? this.getNode(document.root, parentId).node
       : document.root;
 
     const { renderTree } = await import("@academic-figure/core");
@@ -373,7 +470,7 @@ export class DocumentService {
     const document = await this.store.get(documentId);
 
     const startNode = filters.parentId
-      ? ensureNode(document.root, filters.parentId).node
+      ? this.getNode(document.root, filters.parentId).node
       : document.root;
 
     const { findNodes } = await import("@academic-figure/core");
@@ -397,28 +494,95 @@ export class DocumentService {
 
   /**
    * Import an SVG string and replace the document contents.
-   * Parses the SVG into the structured node tree.
-   * For v0.1 this is a simple replacement; v0.2 will do a real diff/merge.
+   *
+   * When the SVG parser is available, this parses the SVG into the
+   * structured node tree and merges metadata. Otherwise it falls back
+   * to storing the raw SVG as a root attribute.
    */
   public async importSvgString(
     documentId: string,
     svgString: string,
-  ): Promise<SvgDocument> {
+  ): Promise<WriteResult> {
     const document = await this.store.get(documentId);
 
-    // For v0.1: store the raw SVG as a text attribute on the root
-    // and mark it as externally modified. A full SVG→SvgNode parser
-    // is planned for v0.2.
-    document.root.attributes["_importedSvg"] = svgString;
+    // Try to use the parser if available
+    try {
+      const { parseSvgDocument } = await import("@academic-figure/core");
+      const parsed = parseSvgDocument(svgString, {
+        preserveUnknownAttributes: true,
+        preserveUnknownElements: true,
+      });
+
+      // Merge semantic metadata from existing document
+      this.mergeMetadata(document.root, parsed.root);
+
+      // Replace root children with parsed children
+      document.root.children = parsed.root.children;
+      document.width = parsed.width;
+      document.height = parsed.height;
+      document.viewBox = parsed.viewBox;
+    } catch {
+      // Parser not available or parse failed — store raw SVG
+      document.root.attributes["_importedSvg"] = svgString;
+    }
+
     document.revision += 1;
     await this.store.save(document);
 
-    return document;
+    return ok(document, ["root"], {
+      importMethod: document.root.attributes["_importedSvg"]
+        ? "raw"
+        : "parsed",
+    });
+  }
+
+  /**
+   * Walk the existing tree and copy metadata (role, importance, tags, etc.)
+   * into the corresponding nodes of the freshly-parsed tree, keyed by id.
+   */
+  private mergeMetadata(oldNode: SvgNode, newNode: SvgNode): void {
+    if (oldNode.metadata) {
+      newNode.metadata = {
+        ...oldNode.metadata,
+        ...(newNode.metadata ?? {}),
+        tags: [
+          ...(oldNode.metadata.tags ?? []),
+          ...(newNode.metadata?.tags ?? []),
+        ],
+      };
+    }
+
+    const oldChildrenById = new Map<string, SvgNode>();
+    for (const child of oldNode.children) {
+      oldChildrenById.set(child.id, child);
+    }
+
+    for (const newChild of newNode.children) {
+      const oldChild = oldChildrenById.get(newChild.id);
+      if (oldChild) {
+        this.mergeMetadata(oldChild, newChild);
+      }
+    }
   }
 
   // -------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------
+
+  /**
+   * Wrapper around ensureNode that converts the core's generic Error
+   * to an ElementNotFoundError with the unified format.
+   */
+  private getNode(root: SvgNode, elementId: string) {
+    try {
+      return ensureNode(root, elementId);
+    } catch (e) {
+      if (e instanceof Error && e.message.includes("not found")) {
+        throw new ElementNotFoundError(elementId);
+      }
+      throw e;
+    }
+  }
 
   private checkRevision(
     document: SvgDocument,

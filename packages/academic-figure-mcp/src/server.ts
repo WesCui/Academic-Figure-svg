@@ -1,8 +1,14 @@
 /**
  * MCP Server definition for Academic Figure SVG.
  *
- * Registers all 12 core tools that Claude/Codex can use to create,
+ * Registers all 13 core tools that Claude/Codex can use to create,
  * manipulate, and export academic SVG figures.
+ *
+ * All write tools return a unified WriteResult:
+ *   { success: true, documentId, revision, affectedElementIds, extra? }
+ *
+ * All errors return a unified ToolError:
+ *   { success: false, code, message, ...details }
  *
  * @module mcp-server
  */
@@ -62,7 +68,7 @@ const GridLayoutSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Helper
+// Helpers
 // ---------------------------------------------------------------------------
 
 function jsonContent(data: unknown) {
@@ -125,20 +131,22 @@ export function createMcpServer(deps: McpDependencies): McpServer {
     },
     async ({ name, width, height, background }) => {
       try {
-        const doc = await documentService.createDocument({
+        const { document, result } = await documentService.createDocument({
           name,
           width,
           height,
           background,
         });
         return jsonContent({
-          documentId: doc.id,
-          name: doc.name,
-          width: doc.width,
-          height: doc.height,
-          viewBox: doc.viewBox,
-          revision: doc.revision,
-          createdAt: doc.createdAt,
+          success: true,
+          documentId: document.id,
+          name: document.name,
+          width: document.width,
+          height: document.height,
+          viewBox: document.viewBox,
+          revision: document.revision,
+          createdAt: document.createdAt,
+          affectedElementIds: result.affectedElementIds,
         });
       } catch (e) {
         return errorContent(e);
@@ -161,6 +169,7 @@ export function createMcpServer(deps: McpDependencies): McpServer {
       try {
         const doc = await documentService.getDocument(documentId);
         return jsonContent({
+          success: true,
           documentId: doc.id,
           name: doc.name,
           width: doc.width,
@@ -187,10 +196,19 @@ export function createMcpServer(deps: McpDependencies): McpServer {
         "Create a new SVG element inside a document. Supports rect, circle, ellipse, line, polyline, polygon, path, text, g, image, and use.",
       inputSchema: z.object({
         documentId: z.string().min(1),
-        parentId: z.string().optional().describe("Parent group ID; defaults to root"),
-        id: z.string().optional().describe("Custom element ID; auto-generated if omitted"),
+        parentId: z
+          .string()
+          .optional()
+          .describe("Parent group ID; defaults to root"),
+        id: z
+          .string()
+          .optional()
+          .describe("Custom element ID; auto-generated if omitted"),
         type: SvgElementTypeSchema,
-        name: z.string().optional().describe("Display name (stored as data-name)"),
+        name: z
+          .string()
+          .optional()
+          .describe("Display name (stored as data-name)"),
         attributes: AttributesSchema.describe(
           "SVG presentation attributes (e.g. {x:10, y:20, fill:'#ff0000'})",
         ),
@@ -202,9 +220,18 @@ export function createMcpServer(deps: McpDependencies): McpServer {
           .describe("Optimistic lock: fail if document revision differs"),
       }),
     },
-    async ({ documentId, parentId, id, type, name, attributes, text, expectedRevision }) => {
+    async ({
+      documentId,
+      parentId,
+      id,
+      type,
+      name,
+      attributes,
+      text,
+      expectedRevision,
+    }) => {
       try {
-        const node = await documentService.createElement(
+        const result = await documentService.createElement(
           documentId,
           {
             parentId,
@@ -216,11 +243,7 @@ export function createMcpServer(deps: McpDependencies): McpServer {
           },
           expectedRevision,
         );
-        return jsonContent({
-          id: node.id,
-          type: node.type,
-          name: node.name,
-        });
+        return jsonContent(result);
       } catch (e) {
         return errorContent(e);
       }
@@ -234,7 +257,7 @@ export function createMcpServer(deps: McpDependencies): McpServer {
     "batch_create_elements",
     {
       description:
-        "Create multiple SVG elements in a single atomic operation. Use this for efficiency when creating many elements at once (e.g., multiple windows on a building, multiple data points).",
+        "Create multiple SVG elements in a single atomic transaction. All-or-nothing: if any element fails validation, none are created. Use this for efficiency when creating many elements at once (e.g., multiple windows on a building). Batch limit: 500.",
       inputSchema: z.object({
         documentId: z.string().min(1),
         elements: z
@@ -256,7 +279,7 @@ export function createMcpServer(deps: McpDependencies): McpServer {
     },
     async ({ documentId, elements, expectedRevision }) => {
       try {
-        const nodes = await documentService.batchCreateElements(
+        const result = await documentService.batchCreateElements(
           documentId,
           elements.map((el) => ({
             parentId: el.parentId,
@@ -268,10 +291,7 @@ export function createMcpServer(deps: McpDependencies): McpServer {
           })),
           expectedRevision,
         );
-        return jsonContent({
-          created: nodes.length,
-          ids: nodes.map((n) => n.id),
-        });
+        return jsonContent(result);
       } catch (e) {
         return errorContent(e);
       }
@@ -300,7 +320,7 @@ export function createMcpServer(deps: McpDependencies): McpServer {
     },
     async ({ documentId, parentId, template, layout, expectedRevision }) => {
       try {
-        const nodes = await documentService.createRepeatedElements(
+        const result = await documentService.createRepeatedElements(
           {
             documentId,
             parentId,
@@ -313,12 +333,7 @@ export function createMcpServer(deps: McpDependencies): McpServer {
           },
           expectedRevision,
         );
-        return jsonContent({
-          created: nodes.length,
-          grid: `${layout.rows}×${layout.columns}`,
-          firstId: nodes[0]?.id,
-          lastId: nodes[nodes.length - 1]?.id,
-        });
+        return jsonContent(result);
       } catch (e) {
         return errorContent(e);
       }
@@ -344,18 +359,22 @@ export function createMcpServer(deps: McpDependencies): McpServer {
         expectedRevision: z.number().int().optional(),
       }),
     },
-    async ({ documentId, elementId, attributes, text, name, expectedRevision }) => {
+    async ({
+      documentId,
+      elementId,
+      attributes,
+      text,
+      name,
+      expectedRevision,
+    }) => {
       try {
-        const node = await documentService.updateElement(
+        const result = await documentService.updateElement(
           documentId,
           elementId,
           { attributes, text, name },
           expectedRevision,
         );
-        return jsonContent({
-          updated: true,
-          elementId: node.id,
-        });
+        return jsonContent(result);
       } catch (e) {
         return errorContent(e);
       }
@@ -379,16 +398,13 @@ export function createMcpServer(deps: McpDependencies): McpServer {
     },
     async ({ documentId, elementIds, transform, expectedRevision }) => {
       try {
-        await documentService.transformElements(
+        const result = await documentService.transformElements(
           documentId,
           elementIds,
           transform,
           expectedRevision,
         );
-        return jsonContent({
-          transformed: elementIds.length,
-          elementIds,
-        });
+        return jsonContent(result);
       } catch (e) {
         return errorContent(e);
       }
@@ -410,15 +426,12 @@ export function createMcpServer(deps: McpDependencies): McpServer {
     },
     async ({ documentId, elementIds, expectedRevision }) => {
       try {
-        const deleted = await documentService.deleteElements(
+        const result = await documentService.deleteElements(
           documentId,
           elementIds,
           expectedRevision,
         );
-        return jsonContent({
-          deleted: deleted.length,
-          elementIds: deleted,
-        });
+        return jsonContent(result);
       } catch (e) {
         return errorContent(e);
       }
@@ -435,7 +448,10 @@ export function createMcpServer(deps: McpDependencies): McpServer {
         "Get a lightweight tree view of the document structure for inspection.",
       inputSchema: z.object({
         documentId: z.string().min(1),
-        parentId: z.string().optional().describe("Start from a specific node"),
+        parentId: z
+          .string()
+          .optional()
+          .describe("Start from a specific node"),
         maxDepth: z.number().int().min(1).max(20).default(10),
       }),
     },
@@ -523,7 +539,11 @@ export function createMcpServer(deps: McpDependencies): McpServer {
     async ({ documentId, width }) => {
       try {
         const result = await renderService.renderPreview(documentId, width);
-        return jsonContent(result);
+        return jsonContent({
+          success: true,
+          documentId,
+          ...result,
+        });
       } catch (e) {
         return errorContent(e);
       }
@@ -546,7 +566,11 @@ export function createMcpServer(deps: McpDependencies): McpServer {
     async ({ documentId, outputPath }) => {
       try {
         const svgPath = await exportService.exportSvg(documentId, outputPath);
-        return jsonContent({ svgPath });
+        return jsonContent({
+          success: true,
+          documentId,
+          svgPath,
+        });
       } catch (e) {
         return errorContent(e);
       }
@@ -554,7 +578,7 @@ export function createMcpServer(deps: McpDependencies): McpServer {
   );
 
   // -----------------------------------------------------------------------
-  // 13. query_elements (alias maintained for discoverability)
+  // 13. get_document_info
   // -----------------------------------------------------------------------
   server.registerTool(
     "get_document_info",
@@ -568,7 +592,8 @@ export function createMcpServer(deps: McpDependencies): McpServer {
       try {
         const doc = await documentService.getDocument(documentId);
         return jsonContent({
-          id: doc.id,
+          success: true,
+          documentId: doc.id,
           name: doc.name,
           width: doc.width,
           height: doc.height,

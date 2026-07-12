@@ -37,3 +37,7 @@ export { renderTree } from "./document/tree-view.js";
 
 // SVG serializer
 export { serializeSvgDocument } from "./serializer/svg-serializer.js";
+
+// SVG parser (XML → SvgDocument)
+export { parseSvgDocument } from "./parser/svg-parser.js";
+export type { ParseSvgOptions } from "./parser/svg-parser.js";

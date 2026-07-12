@@ -1,5 +1,10 @@
 /**
  * Structured error types for the MCP server.
+ *
+ * All errors serialize to a uniform JSON shape:
+ *   { success: false, code: string, message: string, ...details }
+ *
+ * @module errors
  */
 
 export class DocumentNotFoundError extends Error {
@@ -28,7 +33,7 @@ export class RevisionConflictError extends Error {
     public readonly expectedRevision: number,
   ) {
     super(
-      `Revision conflict: expected ${expectedRevision}, current ${currentRevision}`,
+      `Document revision mismatch: expected ${expectedRevision}, current ${currentRevision}`,
     );
     this.name = "RevisionConflictError";
   }
@@ -43,49 +48,64 @@ export class InvalidElementError extends Error {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Unified error serialization
+// ---------------------------------------------------------------------------
+
+export interface SerializedError {
+  success: false;
+  code: string;
+  message: string;
+  expectedRevision?: number;
+  currentRevision?: number;
+}
+
 /**
- * Map a known error to a user-facing JSON string.
+ * Map a known error to a structured JSON object.
+ * The return value matches the unified ToolError shape from the review spec.
  */
 export function errorToJson(error: unknown): string {
-  if (error instanceof DocumentNotFoundError) {
-    return JSON.stringify({
-      error: error.code,
-      message: error.message,
-    });
-  }
-
-  if (error instanceof ElementNotFoundError) {
-    return JSON.stringify({
-      error: error.code,
-      message: error.message,
-    });
-  }
+  let serialized: SerializedError;
 
   if (error instanceof RevisionConflictError) {
-    return JSON.stringify({
-      error: error.code,
-      currentRevision: error.currentRevision,
+    serialized = {
+      success: false,
+      code: error.code,
+      message: error.message,
       expectedRevision: error.expectedRevision,
+      currentRevision: error.currentRevision,
+    };
+  } else if (error instanceof DocumentNotFoundError) {
+    serialized = {
+      success: false,
+      code: error.code,
       message: error.message,
-    });
+    };
+  } else if (error instanceof ElementNotFoundError) {
+    serialized = {
+      success: false,
+      code: error.code,
+      message: error.message,
+    };
+  } else if (error instanceof InvalidElementError) {
+    serialized = {
+      success: false,
+      code: error.code,
+      message: error.message,
+    };
+  } else if (error instanceof Error) {
+    serialized = {
+      success: false,
+      code: "INTERNAL_ERROR",
+      message: error.message,
+    };
+  } else {
+    serialized = {
+      success: false,
+      code: "INTERNAL_ERROR",
+      message: String(error),
+    };
   }
 
-  if (error instanceof InvalidElementError) {
-    return JSON.stringify({
-      error: error.code,
-      message: error.message,
-    });
-  }
-
-  if (error instanceof Error) {
-    return JSON.stringify({
-      error: "INTERNAL_ERROR",
-      message: error.message,
-    });
-  }
-
-  return JSON.stringify({
-    error: "INTERNAL_ERROR",
-    message: String(error),
-  });
+  return JSON.stringify(serialized, null, 2);
 }
