@@ -227,26 +227,50 @@ export class DocumentService {
     this.checkRevision(document, expectedRevision);
 
     // ---- Phase 1: Validate all inputs first (pre-flight) ----
+    // Collect IDs that will be created in THIS batch — they can serve
+    // as parents for subsequent elements in the same batch.
+    const batchIds = new Set(inputs.map((inp) => inp.id).filter(Boolean) as string[]);
+
     const parents = new Map<string, SvgNode>();
     for (let i = 0; i < inputs.length; i++) {
       const parentId = inputs[i]!.parentId ?? "root";
-      if (!parents.has(parentId)) {
-        try {
-          parents.set(parentId, this.getNode(document.root, parentId).node);
-        } catch {
-          throw new InvalidElementError(
-            `batch_create_elements[${i}]: parent "${parentId}" not found`,
-          );
-        }
+
+      // Already resolved (cached)
+      if (parents.has(parentId)) continue;
+
+      // Parent is being created in this same batch → skip validation now,
+      // the parent will be added to `parents` during Phase 2.
+      if (batchIds.has(parentId)) continue;
+
+      // Look up in existing tree
+      try {
+        parents.set(parentId, this.getNode(document.root, parentId).node);
+      } catch {
+        throw new InvalidElementError(
+          `batch_create_elements[${i}]: parent "${parentId}" not found in document or batch`,
+        );
       }
     }
 
     // ---- Phase 2: Create all nodes (all-or-nothing from here) ----
     const createdIds: string[] = [];
+    // Track nodes created in this batch so they can serve as parents
+    const batchNodes = new Map<string, SvgNode>();
 
     for (const input of inputs) {
       const parentId = input.parentId ?? "root";
-      const parent = parents.get(parentId)!;
+
+      // Resolve parent: either from existing tree or from this batch
+      let parent = parents.get(parentId);
+      if (!parent) {
+        parent = batchNodes.get(parentId);
+      }
+      if (!parent) {
+        // Should not happen after Phase 1 validation, but defensive
+        throw new InvalidElementError(
+          `batch_create_elements: parent "${parentId}" not resolved`,
+        );
+      }
 
       const node: SvgNode = {
         id: input.id ?? generateElementId(),
@@ -260,6 +284,11 @@ export class DocumentService {
 
       parent.children.push(node);
       createdIds.push(node.id);
+
+      // Register this node so subsequent elements can reference it
+      if (node.id) {
+        batchNodes.set(node.id, node);
+      }
     }
 
     document.revision += 1;

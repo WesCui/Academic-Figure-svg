@@ -50,11 +50,52 @@ const SUPPORTED_SVG_ELEMENTS = new Set<string>([
   "use", "defs", "symbol", "marker",
   "linearGradient", "radialGradient", "clipPath",
   "image", "style", "title", "desc",
+  "stop", "filter", "feGaussianBlur", "mask", "pattern",
 ]);
 
 const SELF_CLOSING_ELEMENTS = new Set<string>([
   "rect", "circle", "ellipse", "line", "polyline", "polygon",
-  "path", "use", "image",
+  "path", "use", "image", "stop",
+]);
+
+/**
+ * SVG attributes that must ALWAYS be stored as strings.
+ * These carry non-numeric data: colors, URLs, path commands,
+ * font names, CSS, transform strings, references, etc.
+ */
+const STRING_ONLY_ATTRS = new Set<string>([
+  // Presentation — colors / URLs / CSS
+  "fill", "stroke",
+  "style", "class",
+  // Transform
+  "transform",
+  // Path / shape data
+  "d", "points",
+  // References (URLs)
+  "href", "xlink:href",
+  "marker-end", "marker-start", "marker-mid",
+  "clip-path", "mask",
+  "filter",
+  // Stroke styling
+  "stroke-dasharray", "stroke-linecap", "stroke-linejoin",
+  // Fill rules
+  "fill-rule", "clip-rule",
+  // Text styling
+  "font-family", "font-style", "font-weight",
+  "text-anchor", "text-decoration",
+  "dominant-baseline", "alignment-baseline",
+  // Gradient / pattern
+  "gradientUnits", "gradientTransform",
+  "spreadMethod",
+  "patternUnits", "patternTransform",
+  // XML / namespace
+  "xmlns", "xmlns:xlink", "xml:space",
+  "version", "encoding",
+  // Misc
+  "id", "data-name", "type",
+  "markerWidth", "markerHeight",
+  "orient", "refX", "refY",
+  "offset",
 ]);
 
 /**
@@ -298,6 +339,10 @@ function parseMetadata(
     metadata.category = attributes["data-category"];
     hasMetadata = true;
   }
+  if (attributes["data-tags"]) {
+    metadata.tags = attributes["data-tags"]!.split(",").map((t: string) => t.trim()).filter(Boolean);
+    hasMetadata = true;
+  }
 
   return hasMetadata ? metadata : undefined;
 }
@@ -305,11 +350,29 @@ function parseMetadata(
 /**
  * Map a parsed XmlNode to an SvgNode.
  */
+/**
+ * Normalize an SVG tag name to its canonical form.
+ * SVG element names use camelCase (e.g. "linearGradient", "clipPath", "feGaussianBlur").
+ * This maps both lowercase XML output and camelCase input to the canonical name.
+ */
+const TAG_NAME_MAP: Record<string, string> = {
+  "lineargradient": "linearGradient",
+  "radialgradient": "radialGradient",
+  "clippath": "clipPath",
+  "fegaussianblur": "feGaussianBlur",
+  "foreignobject": "foreignObject",
+};
+
+function normalizeTagName(raw: string): string {
+  const lower = raw.toLowerCase();
+  return TAG_NAME_MAP[lower] ?? lower;
+}
+
 function xmlToSvgNode(
   xml: XmlNode,
   options: ParseSvgOptions,
 ): SvgNode | null {
-  const tagName = xml.tagName.toLowerCase();
+  const tagName = normalizeTagName(xml.tagName);
 
   // Filter unsupported elements
   if (!SUPPORTED_SVG_ELEMENTS.has(tagName) && !options.preserveUnknownElements) {
@@ -328,10 +391,11 @@ function xmlToSvgNode(
     }
     if (key.startsWith("data-")) continue; // parsed into metadata
 
-    // Try to convert numeric values
-    if (key !== "fill" && key !== "stroke" && key !== "transform" && key !== "style") {
+    // Try to convert numeric values — but skip attributes that always carry
+    // string data (colors, URLs, path data, font families, CSS, etc.)
+    if (!STRING_ONLY_ATTRS.has(key)) {
       const num = Number(value);
-      if (!isNaN(num) && String(num) === value) {
+      if (!isNaN(num) && String(num) === value && key !== "id") {
         cleanAttrs[key] = num;
         continue;
       }
@@ -383,12 +447,12 @@ export function parseSvgDocument(
 
   // Find the <svg> element (may be at root or nested)
   let svgEl: XmlNode;
-  if (xmlRoot.tagName.toLowerCase() === "svg") {
+  if (normalizeTagName(xmlRoot.tagName) === "svg") {
     svgEl = xmlRoot;
   } else {
     // Look for <svg> in children
     const found = xmlRoot.children.find(
-      (c) => c.tagName.toLowerCase() === "svg",
+      (c) => normalizeTagName(c.tagName) === "svg",
     );
     if (!found) {
       throw new Error("No <svg> element found in SVG string");

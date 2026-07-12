@@ -70,6 +70,10 @@ function serializeNode(node: SvgNode, depth = 1): string {
     attrs["data-category"] = node.metadata.category;
   }
 
+  if (node.metadata?.tags && node.metadata.tags.length > 0) {
+    attrs["data-tags"] = node.metadata.tags.join(",");
+  }
+
   const attrText = serializeAttributes(attrs);
 
   // Self-closing tag for leaf elements without text

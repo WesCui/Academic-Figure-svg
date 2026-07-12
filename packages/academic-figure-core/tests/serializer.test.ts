@@ -345,3 +345,215 @@ describe("round-trip: serialize → parse", () => {
     expect(legend.children[1]!.text).toBe("Legend");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Real-world SVG patterns (Review #2 feedback)
+// ---------------------------------------------------------------------------
+
+describe("real-world SVG patterns", () => {
+  it("preserves transform='matrix(...)' as string", () => {
+    const svg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <g transform="matrix(0.866,0.5,-0.5,0.866,100,50)">
+    <rect width="80" height="60" fill="blue"/>
+  </g>
+</svg>`;
+    const doc = parseSvgDocument(svg);
+    const g = doc.root.children[0]!;
+    expect(typeof g.attributes["transform"]).toBe("string");
+    expect(g.attributes["transform"]).toBe("matrix(0.866,0.5,-0.5,0.866,100,50)");
+
+    // Round-trip
+    const reserialized = serializeSvgDocument(doc);
+    const doc2 = parseSvgDocument(reserialized);
+    expect(doc2.root.children[0]!.attributes["transform"]).toBe("matrix(0.866,0.5,-0.5,0.866,100,50)");
+  });
+
+  it("preserves fill='url(#gradient)' as string", () => {
+    const svg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <defs>
+    <linearGradient id="grad1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff0000"/>
+      <stop offset="1" stop-color="#0000ff"/>
+    </linearGradient>
+  </defs>
+  <rect fill="url(#grad1)" width="100" height="100"/>
+</svg>`;
+    const doc = parseSvgDocument(svg);
+
+    // Check defs
+    const defs = doc.root.children.find((c) => c.type === "defs");
+    expect(defs).toBeDefined();
+    expect(defs!.children).toHaveLength(1);
+    expect(defs!.children[0]!.type).toBe("linearGradient");
+    expect(defs!.children[0]!.children).toHaveLength(2); // two stops
+    expect(defs!.children[0]!.children[0]!.type).toBe("stop");
+
+    // Check rect fill remains a URL string
+    const rect = doc.root.children.find((c) => c.type === "rect");
+    expect(rect).toBeDefined();
+    expect(typeof rect!.attributes["fill"]).toBe("string");
+    expect(rect!.attributes["fill"]).toBe("url(#grad1)");
+  });
+
+  it("preserves inline style attribute as raw string", () => {
+    const svg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <rect style="fill:#ff0000;stroke:#000000;stroke-width:2" width="100" height="100"/>
+</svg>`;
+    const doc = parseSvgDocument(svg);
+    const rect = doc.root.children[0]!;
+    expect(typeof rect.attributes["style"]).toBe("string");
+    expect(rect.attributes["style"]).toBe("fill:#ff0000;stroke:#000000;stroke-width:2");
+  });
+
+  it("preserves <style> element content as raw CSS", () => {
+    const svg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <style>
+    .cls-1 { fill: red; stroke: blue; }
+    .cls-2 { fill: green; opacity: 0.5; }
+  </style>
+  <rect class="cls-1" width="100" height="100"/>
+</svg>`;
+    const doc = parseSvgDocument(svg);
+    const styleEl = doc.root.children.find((c) => c.type === "style");
+    expect(styleEl).toBeDefined();
+    expect(styleEl!.text).toContain(".cls-1");
+    expect(styleEl!.text).toContain("fill: red");
+    expect(styleEl!.text).toContain(".cls-2");
+    expect(styleEl!.text).toContain("opacity: 0.5");
+
+    // Round-trip preserves CSS
+    const reserialized = serializeSvgDocument(doc);
+    expect(reserialized).toContain(".cls-1");
+    expect(reserialized).toContain("fill: red");
+  });
+
+  it("preserves <use> with href reference", () => {
+    const svg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <defs>
+    <circle id="myCircle" cx="50" cy="50" r="40"/>
+  </defs>
+  <use href="#myCircle" x="100" y="0"/>
+</svg>`;
+    const doc = parseSvgDocument(svg);
+    const use = doc.root.children.find((c) => c.type === "use");
+    expect(use).toBeDefined();
+    expect(typeof use!.attributes["href"]).toBe("string");
+    expect(use!.attributes["href"]).toBe("#myCircle");
+  });
+
+  it("preserves clip-path and marker-end as strings", () => {
+    const svg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <defs>
+    <clipPath id="clip1">
+      <rect x="0" y="0" width="100" height="100"/>
+    </clipPath>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="red"/>
+    </marker>
+  </defs>
+  <rect clip-path="url(#clip1)" fill="blue" width="200" height="200"/>
+  <line x1="10" y1="10" x2="100" y2="100" stroke="black" marker-end="url(#arrow)"/>
+</svg>`;
+    const doc = parseSvgDocument(svg);
+    const rect = doc.root.children.find((c) => c.type === "rect");
+    expect(rect).toBeDefined();
+    expect(typeof rect!.attributes["clip-path"]).toBe("string");
+    expect(rect!.attributes["clip-path"]).toBe("url(#clip1)");
+
+    const line = doc.root.children.find((c) => c.type === "line");
+    expect(line).toBeDefined();
+    expect(typeof line!.attributes["marker-end"]).toBe("string");
+    expect(line!.attributes["marker-end"]).toBe("url(#arrow)");
+  });
+
+  it("preserves path d attribute as string", () => {
+    const svg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200">
+  <path d="M10,80 Q95,10 180,80 T350,80" fill="none" stroke="red" stroke-width="3"/>
+</svg>`;
+    const doc = parseSvgDocument(svg);
+    const path = doc.root.children[0]!;
+    expect(path.type).toBe("path");
+    expect(typeof path.attributes["d"]).toBe("string");
+    expect(path.attributes["d"]).toBe("M10,80 Q95,10 180,80 T350,80");
+  });
+
+  it("preserves font-family and text-anchor as strings", () => {
+    const svg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="100">
+  <text font-family="Times New Roman, serif" font-size="14" text-anchor="middle" x="100" y="50">Hello</text>
+</svg>`;
+    const doc = parseSvgDocument(svg);
+    const text = doc.root.children[0]!;
+    expect(typeof text.attributes["font-family"]).toBe("string");
+    expect(text.attributes["font-family"]).toBe("Times New Roman, serif");
+    expect(typeof text.attributes["text-anchor"]).toBe("string");
+    expect(text.attributes["text-anchor"]).toBe("middle");
+    expect(text.attributes["font-size"]).toBe(14); // numeric
+  });
+
+  it("preserves xmlns:xlink namespace attributes", () => {
+    const svg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="200" height="200">
+  <use xlink:href="#icon" x="10" y="10"/>
+</svg>`;
+    const doc = parseSvgDocument(svg);
+    expect(doc.root.children).toHaveLength(1);
+    const use = doc.root.children[0]!;
+    expect(typeof use.attributes["xlink:href"]).toBe("string");
+    expect(use.attributes["xlink:href"]).toBe("#icon");
+  });
+
+  it("handles SVG-Edit-style output with multiple namespaces and attributes", () => {
+    // Simulates a real SVG-Edit export
+    const svg = `<?xml version="1.0"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="800" height="600" viewBox="0 0 800 600">
+  <g id="layer1" data-role="environment">
+    <rect id="bg" x="0" y="0" width="800" height="600" fill="#f5f5f5" stroke="none"/>
+    <path id="road" d="M0,500 L800,500" fill="none" stroke="#999" stroke-width="3" stroke-dasharray="8,4"/>
+  </g>
+  <g id="layer2" data-role="entity" data-importance="primary">
+    <circle id="uav" cx="400" cy="250" r="20" fill="#118AB2" stroke="#073B4C" stroke-width="2"/>
+    <text id="uav-label" x="400" y="285" font-family="Arial" font-size="12" text-anchor="middle" fill="#333">UAV</text>
+  </g>
+</svg>`;
+
+    const doc = parseSvgDocument(svg);
+    expect(doc.root.children).toHaveLength(2);
+
+    // Layer 1
+    const layer1 = doc.root.children[0]!;
+    expect(layer1.id).toBe("layer1");
+    expect(layer1.metadata?.role).toBe("environment");
+    expect(layer1.children).toHaveLength(2);
+
+    const road = layer1.children.find((c) => c.id === "road")!;
+    expect(road.attributes["stroke-dasharray"]).toBe("8,4");
+    expect(typeof road.attributes["d"]).toBe("string");
+
+    // Layer 2
+    const layer2 = doc.root.children[1]!;
+    expect(layer2.id).toBe("layer2");
+    expect(layer2.metadata?.importance).toBe("primary");
+
+    const uavLabel = layer2.children.find((c) => c.id === "uav-label")!;
+    expect(uavLabel.text).toBe("UAV");
+    expect(uavLabel.attributes["font-family"]).toBe("Arial");
+    expect(uavLabel.attributes["text-anchor"]).toBe("middle");
+    expect(uavLabel.attributes["fill"]).toBe("#333");
+
+    // Round-trip
+    const reserialized = serializeSvgDocument(doc);
+    const doc2 = parseSvgDocument(reserialized);
+    expect(doc2.root.children).toHaveLength(2);
+    const layer2b = doc2.root.children[1]!;
+    expect(layer2b.metadata?.role).toBe("entity");
+    expect(layer2b.metadata?.importance).toBe("primary");
+  });
+});

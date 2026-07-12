@@ -124,7 +124,7 @@ export function startHttpBridge(
           await exportService.exportSvg(documentId);
 
           // Re-render preview
-          let preview: { width: number; height: number } | null = null;
+          let preview: { width: number; height: number; previewPath: string } | null = null;
           try {
             preview = await renderService.renderPreview(documentId);
           } catch {
@@ -178,7 +178,9 @@ export function startHttpBridge(
           json(res, 200, {
             success: true,
             documentId,
-            ...result,
+            previewPath: result.previewPath,
+            width: result.width,
+            height: result.height,
           });
         } catch (e) {
           json(res, 500, {

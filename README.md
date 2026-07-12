@@ -5,16 +5,50 @@
   <a href="./README.zh-CN.md"><strong>中文</strong></a>
 </p>
 
-# SVGEdit + Academic Figure MCP
+# Academic Figure SVG MCP
+
+*An AI-native structured SVG editing system for creating, previewing, refining, and manually editing publication-quality academic figures. Built on SVG-Edit, MCP, and resvg.*
 
 [![npm](https://img.shields.io/npm/v/svgedit.svg)](https://www.npmjs.com/package/svgedit)
-[![Actions Status](https://github.com/SVG-Edit/svgedit/workflows/Node%20CI/badge.svg)](https://github.com/SVG-Edit/svgedit/actions)
-[![Tests](https://img.shields.io/badge/tests-64%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-77%20passed-brightgreen)]()
 [![Node](https://img.shields.io/badge/node-%3E%3D20-brightgreen)]()
+[![MCP Tools](https://img.shields.io/badge/MCP%20tools-20-blue)]()
 
-**SVGEdit** is a fast, web-based, JavaScript-driven SVG drawing editor that works in any modern browser.
+---
 
-**Academic Figure MCP** extends SVGEdit with a structured SVG document model, an MCP (Model Context Protocol) server for AI-assisted figure creation, and resvg-powered deterministic PNG previews — enabling LLMs like Claude to create, edit, and refine academic SVG figures programmatically.
+## The Visual Feedback Loop
+
+```
+AI Agent (Claude / Codex)
+       │
+       ▼
+  MCP Tools (20 tools)
+       │
+       ▼
+  Structured SVG Document ←──→ SVG-Edit Manual Editing
+       │
+       ▼
+  resvg Preview (base64 PNG)
+       │
+       ▼
+  Visual Feedback → Refinement
+       │
+       └── audit_figure (static checks)
+```
+
+**Key capabilities:**
+
+- ✅ Editable SVG with full SVG-Edit round-trip
+- ✅ Semantic element hierarchy (role, importance, tags)
+- ✅ Atomic batch operations (up to 500 elements)
+- ✅ AI visual feedback loop (render_preview returns base64 PNG)
+- ✅ Academic theme system (IEEE, Academic)
+- ✅ High-level primitives (buildings, links, callouts, legends)
+- ✅ Figure audit tool (overlap, bounds, text-size, density)
+- ✅ Layout helpers (align, distribute)
+- ✅ Optimistic locking + revision snapshots
+
+**Benchmark result:** A 103-node academic figure in **20 MCP tool calls** with **0 errors**, **0 revision conflicts**.
 
 ---
 

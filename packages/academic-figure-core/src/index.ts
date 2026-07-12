@@ -41,3 +41,18 @@ export { serializeSvgDocument } from "./serializer/svg-serializer.js";
 // SVG parser (XML → SvgDocument)
 export { parseSvgDocument } from "./parser/svg-parser.js";
 export type { ParseSvgOptions } from "./parser/svg-parser.js";
+
+// Academic theme system
+export type {
+  AcademicFigureTheme,
+  ThemeColors,
+  ThemeStrokes,
+  ThemeTypography,
+  ThemeGeometry,
+  SemanticLinkType,
+  SemanticEntityType,
+} from "./style/theme-types.js";
+export { resolveLinkColor, resolveEntityColor } from "./style/theme-types.js";
+export { academicTheme } from "./style/academic-theme.js";
+export { ieeeTheme } from "./style/ieee-theme.js";
+export { resolveTheme, listThemes, describeThemes } from "./style/theme-resolver.js";

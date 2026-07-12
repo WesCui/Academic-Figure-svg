@@ -6,6 +6,7 @@
  */
 
 import { promises as fs } from "node:fs";
+import path from "node:path";
 
 import { Resvg } from "@resvg/resvg-js";
 import { serializeSvgDocument } from "@academic-figure/core";
@@ -17,6 +18,8 @@ export interface PreviewResult {
   previewPath: string;
   width: number;
   height: number;
+  /** PNG buffer — available for base64 embedding in MCP responses */
+  pngBuffer: Buffer;
 }
 
 export class RenderService {
@@ -28,9 +31,13 @@ export class RenderService {
   /**
    * Render a document to PNG preview.
    *
+   * Returns both the file path AND the raw PNG buffer so the MCP server
+   * can embed the image directly in tool responses — enabling true
+   * visual feedback loops for AI agents.
+   *
    * @param documentId - The document to render
    * @param width - Optional output width in pixels (maintains aspect ratio)
-   * @returns Path and dimensions of the rendered PNG
+   * @returns Path, dimensions, and raw PNG buffer
    */
   public async renderPreview(
     documentId: string,
@@ -54,11 +61,8 @@ export class RenderService {
 
     const previewPath = getPreviewPath(this.workspaceRoot, documentId);
 
-    // Ensure directory exists
-    await fs.mkdir(
-      previewPath.substring(0, previewPath.lastIndexOf("/")),
-      { recursive: true },
-    );
+    // Ensure directory exists (cross-platform path handling)
+    await fs.mkdir(path.dirname(previewPath), { recursive: true });
 
     await fs.writeFile(previewPath, pngBuffer);
 
@@ -66,6 +70,7 @@ export class RenderService {
       previewPath,
       width: rendered.width,
       height: rendered.height,
+      pngBuffer,
     };
   }
 }

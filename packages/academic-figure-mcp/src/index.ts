@@ -21,6 +21,7 @@ import { FileDocumentStore } from "./store/document-store.js";
 import { DocumentService } from "./services/document-service.js";
 import { RenderService } from "./services/render-service.js";
 import { ExportService } from "./services/export-service.js";
+import { PrimitiveService } from "./services/primitive-service.js";
 import { createMcpServer } from "./server.js";
 import { resolveWorkspaceRoot } from "./utils/paths.js";
 
@@ -43,12 +44,14 @@ async function main(): Promise<void> {
   const documentService = new DocumentService(store);
   const renderService = new RenderService(store, workspaceRoot);
   const exportService = new ExportService(store, workspaceRoot);
+  const primitiveService = new PrimitiveService(documentService);
 
   // Start the MCP server over stdio
   const server = createMcpServer({
     documentService,
     renderService,
     exportService,
+    primitiveService,
   });
 
   const transport = new StdioServerTransport();
