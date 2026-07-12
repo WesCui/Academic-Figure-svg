@@ -504,8 +504,31 @@ export class PrimitiveService {
       (input.semanticType === "leakage" || input.semanticType === "trajectory");
     const opacity = input.style?.opacity ?? (input.semanticType === "artificial-noise" ? 0.4 : 1);
 
-    // Create the line/path
-    if (input.geometry?.type === "beam" && startY !== undefined) {
+    // Create the line/curve/beam
+    if (input.geometry?.type === "curve") {
+      // Real curve geometry: quadratic bezier path
+      const cpX = input.geometry?.curvature
+        ? (startX + endX) / 2 + input.geometry.curvature
+        : (startX + endX) / 2;
+      const cpY = input.geometry?.curvature
+        ? (startY + endY) / 2 - Math.abs(input.geometry.curvature)
+        : Math.min(startY, endY) - Math.abs(endX - startX) * 0.3;
+
+      const attrs: Record<string, string | number> = {
+        d: `M${startX},${startY} Q${cpX},${cpY} ${endX},${endY}`,
+        fill: "none",
+        stroke: linkColor,
+        "stroke-width": strokeWidth,
+        opacity,
+      };
+      if (isDashed) attrs["stroke-dasharray"] = "3,3";
+
+      await this.documentService.createElement(input.documentId, {
+        parentId, id: linkId, type: "path", name: input.semanticType,
+        attributes: attrs,
+        metadata: { role: "communication-link", tags: [input.semanticType] },
+      }, expectedRevision);
+    } else if (input.geometry?.type === "beam" && startY !== undefined) {
       // Beam: polygon from source to target with width
       const bw = input.geometry?.beamWidth ?? 12;
       const dx = endX - startX;
@@ -666,22 +689,26 @@ export class PrimitiveService {
     }
 
     // Label text (skip for leader-only variant)
+    // Supports \n for multiline labels — generates multiple tspan lines
     if (input.label && variant !== "leader-only") {
+      const lines = input.label.split("\\n");
       const labelX = input.labelPosition?.x ?? input.x + 20;
-      const labelY = input.labelPosition?.y ?? input.y + 4;
+      const baseLabelY = input.labelPosition?.y ?? input.y + 4;
+      const lineHeight = theme.typography.calloutSize * 1.3;
+      const fontSize = theme.typography.calloutSize * 0.85;
 
-      // Boxed variant: light background rect behind the label
+      // Boxed variant: light background rect behind all lines
       if (variant === "boxed") {
         const boxPad = 8;
-        // Estimate text width from character count
-        const textW = input.label.length * theme.typography.calloutSize * 0.55 + boxPad * 2;
-        const textH = theme.typography.calloutSize * 1.4;
+        const maxLineLen = Math.max(...lines.map((l) => l.length));
+        const textW = maxLineLen * fontSize * 0.55 + boxPad * 2;
+        const textH = lines.length * lineHeight + boxPad;
         const boxId = `${calloutId}-box`;
         await this.documentService.createElement(input.documentId, {
           parentId, id: boxId, type: "rect", name: "Callout Box",
           attributes: {
             x: labelX - boxPad,
-            y: labelY - textH + boxPad * 0.5,
+            y: baseLabelY - lineHeight + boxPad * 0.3,
             width: textW,
             height: textH,
             rx: 3,
@@ -695,23 +722,27 @@ export class PrimitiveService {
         allIds.push(boxId);
       }
 
-      const labelId = `${calloutId}-label`;
-      await this.documentService.createElement(input.documentId, {
-        parentId,
-        id: labelId,
-        type: "text",
-        name: `Label ${input.number}`,
-        attributes: {
-          x: labelX,
-          y: labelY,
-          "font-family": theme.typography.fontFamily,
-          "font-size": theme.typography.calloutSize * 0.85,
-          fill: theme.colors.textPrimary,
-        },
-        text: input.label,
-        metadata: { role: "annotation", tags: ["callout-label"] },
-      }, expectedRevision);
-      allIds.push(labelId);
+      // Create each line as a separate text element (SVG text doesn't auto-wrap)
+      for (let li = 0; li < lines.length; li++) {
+        const lineY = baseLabelY + li * lineHeight;
+        const labelId = li === 0 ? `${calloutId}-label` : `${calloutId}-label-l${li}`;
+        await this.documentService.createElement(input.documentId, {
+          parentId,
+          id: labelId,
+          type: "text",
+          name: `Label ${input.number} line ${li + 1}`,
+          attributes: {
+            x: labelX,
+            y: lineY,
+            "font-family": theme.typography.fontFamily,
+            "font-size": fontSize,
+            fill: theme.colors.textPrimary,
+          },
+          text: lines[li]!,
+          metadata: { role: "annotation", tags: ["callout-label"] },
+        }, expectedRevision);
+        allIds.push(labelId);
+      }
     }
 
     const document = await this.documentService.getDocument(input.documentId);
@@ -782,7 +813,65 @@ export class PrimitiveService {
       const entryId = `${legendId}-entry-${i}`;
       const isLineEntry = "type" in entry && entry.type === "line";
 
-      if (isLineEntry) {
+      const isShapeEntry = "type" in entry && entry.type === "shape";
+
+      if (isShapeEntry) {
+        const shapeEntry = entry as LegendShapeEntry;
+        const sz = shapeEntry.size ?? 12;
+        const sx = input.x + pad + sz / 2;
+        const sy = ey + 12;
+
+        if (shapeEntry.shape === "circle") {
+          await this.documentService.createElement(input.documentId, {
+            parentId, id: `${entryId}-shape`, type: "circle", name: shapeEntry.label,
+            attributes: {
+              cx: sx, cy: sy, r: sz / 2,
+              fill: shapeEntry.color,
+              stroke: shapeEntry.borderColor ?? "none",
+              "stroke-width": shapeEntry.borderColor ? 1 : 0,
+            },
+            metadata: { role: "legend" },
+          }, expectedRevision);
+          allIds.push(`${entryId}-shape`);
+        } else if (shapeEntry.shape === "rect") {
+          await this.documentService.createElement(input.documentId, {
+            parentId, id: `${entryId}-shape`, type: "rect", name: shapeEntry.label,
+            attributes: {
+              x: sx - sz / 2, y: sy - sz / 2, width: sz, height: sz, rx: 2,
+              fill: shapeEntry.color,
+              stroke: shapeEntry.borderColor ?? "none",
+              "stroke-width": shapeEntry.borderColor ? 1 : 0,
+            },
+            metadata: { role: "legend" },
+          }, expectedRevision);
+          allIds.push(`${entryId}-shape`);
+        } else if (shapeEntry.shape === "diamond") {
+          const hs = sz / 2;
+          await this.documentService.createElement(input.documentId, {
+            parentId, id: `${entryId}-shape`, type: "polygon", name: shapeEntry.label,
+            attributes: {
+              points: `${sx},${sy - hs} ${sx + hs},${sy} ${sx},${sy + hs} ${sx - hs},${sy}`,
+              fill: shapeEntry.color,
+              stroke: shapeEntry.borderColor ?? "none",
+              "stroke-width": shapeEntry.borderColor ? 1 : 0,
+            },
+            metadata: { role: "legend" },
+          }, expectedRevision);
+          allIds.push(`${entryId}-shape`);
+        } else if (shapeEntry.shape === "ellipse") {
+          await this.documentService.createElement(input.documentId, {
+            parentId, id: `${entryId}-shape`, type: "ellipse", name: shapeEntry.label,
+            attributes: {
+              cx: sx, cy: sy, rx: sz / 2, ry: sz / 3,
+              fill: shapeEntry.color,
+              stroke: shapeEntry.borderColor ?? "none",
+              "stroke-width": shapeEntry.borderColor ? 1 : 0,
+            },
+            metadata: { role: "legend" },
+          }, expectedRevision);
+          allIds.push(`${entryId}-shape`);
+        }
+      } else if (isLineEntry) {
         const lineEntry = entry as LegendLineEntry;
         const linkColor = resolveLinkColor(theme, lineEntry.semanticType);
         const isDashed = lineEntry.semanticType === "leakage" || lineEntry.semanticType === "trajectory";
@@ -966,6 +1055,13 @@ export class PrimitiveService {
       },
     };
 
+    report.disclaimer =
+      "Geometric audit is complementary to AI visual inspection. " +
+      "It CAN detect: bounding-box overlaps, out-of-bounds elements, small text, dense regions. " +
+      "It CANNOT detect: semantic errors (mislabeled callouts), color harmony issues, " +
+      "misleading visual hierarchy, incorrect arrowhead placement, or aesthetic problems. " +
+      "Always follow up audit_figure with render_preview for visual confirmation.";
+
     return report;
   }
 
@@ -1083,20 +1179,96 @@ export class PrimitiveService {
     return ensureNode(root, id).node;
   }
 
+  /**
+   * Compute the visual center of an element.
+   *
+   * For primitive shapes (rect, circle, ellipse): uses cx/cy or x/y + w/h.
+   * For composite groups (g): recursively computes the bounding box of all
+   * descendant children and returns the center of the union.
+   *
+   * This fixes the issue where sourceId/targetId auto-positioning failed
+   * for composite groups like UAV (body + rotor children).
+   */
   private getElementCenter(root: SvgNode, id: string): { x: number; y: number } {
     try {
       const node = this.getNodeFromDoc(root, id);
+
+      // Direct center on circle/ellipse
       const cx = node.attributes["cx"] as number | undefined;
       const cy = node.attributes["cy"] as number | undefined;
       if (cx !== undefined && cy !== undefined) return { x: cx, y: cy };
-      const x = (node.attributes["x"] as number) ?? 0;
-      const y = (node.attributes["y"] as number) ?? 0;
-      const w = (node.attributes["width"] as number) ?? 0;
-      const h = (node.attributes["height"] as number) ?? 0;
-      return { x: x + w / 2, y: y + h / 2 };
+
+      // Direct position for rect/text/image
+      const x = node.attributes["x"] as number | undefined;
+      const y = node.attributes["y"] as number | undefined;
+      const w = node.attributes["width"] as number | undefined;
+      const h = node.attributes["height"] as number | undefined;
+      if (x !== undefined && y !== undefined && w !== undefined && h !== undefined) {
+        return { x: x + w / 2, y: y + h / 2 };
+      }
+      if (x !== undefined && y !== undefined) {
+        return { x, y };
+      }
+
+      // For composite groups (g elements): compute union bounding box of children
+      if (node.type === "g" && node.children.length > 0) {
+        return this.computeGroupBBox(node);
+      }
+
+      return { x: x ?? 0, y: y ?? 0 };
     } catch {
       return { x: 0, y: 0 };
     }
+  }
+
+  /** Recursively compute the bounding box center for a group element. */
+  private computeGroupBBox(group: SvgNode): { x: number; y: number } {
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    const walk = (n: SvgNode, offsetX: number, offsetY: number) => {
+      const cx = n.attributes["cx"] as number | undefined;
+      const cy = n.attributes["cy"] as number | undefined;
+      const r = n.attributes["r"] as number | undefined;
+      if (cx !== undefined && cy !== undefined) {
+        const radius = r ?? 0;
+        minX = Math.min(minX, cx - radius + offsetX);
+        minY = Math.min(minY, cy - radius + offsetY);
+        maxX = Math.max(maxX, cx + radius + offsetX);
+        maxY = Math.max(maxY, cy + radius + offsetY);
+        return;
+      }
+
+      const rx = n.attributes["rx"] as number | undefined;
+      const ry = n.attributes["ry"] as number | undefined;
+      if (rx !== undefined && ry !== undefined) {
+        minX = Math.min(minX, (n.attributes["cx"] as number ?? 0) - rx + offsetX);
+        minY = Math.min(minY, (n.attributes["cy"] as number ?? 0) - ry + offsetY);
+        maxX = Math.max(maxX, (n.attributes["cx"] as number ?? 0) + rx + offsetX);
+        maxY = Math.max(maxY, (n.attributes["cy"] as number ?? 0) + ry + offsetY);
+        return;
+      }
+
+      const nx = (n.attributes["x"] as number) ?? 0;
+      const ny = (n.attributes["y"] as number) ?? 0;
+      const nw = (n.attributes["width"] as number) ?? 0;
+      const nh = (n.attributes["height"] as number) ?? 0;
+      if (nw > 0 || nh > 0) {
+        minX = Math.min(minX, nx + offsetX);
+        minY = Math.min(minY, ny + offsetY);
+        maxX = Math.max(maxX, nx + nw + offsetX);
+        maxY = Math.max(maxY, ny + nh + offsetY);
+      }
+
+      // Recurse into children (no additional offset for SVG groups without transform)
+      for (const child of n.children) {
+        walk(child, offsetX, offsetY);
+      }
+    };
+
+    walk(group, 0, 0);
+
+    if (!isFinite(minX)) return { x: 0, y: 0 };
+    return { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
   }
 
   private getNodeCenter(node: SvgNode): { x: number; y: number } | null {
@@ -1196,7 +1368,13 @@ interface CommunicationLinkInput {
   start?: Point;
   end?: Point;
   semanticType: SemanticLinkType;
-  geometry?: { type: "line" | "curve" | "beam"; curvature?: number; beamWidth?: number };
+  geometry?: {
+    type: "line" | "curve" | "beam";
+    /** For curve: control-point horizontal offset from midpoint. Negative = bow left/down. */
+    curvature?: number;
+    /** For beam: polygon beam width in user units */
+    beamWidth?: number;
+  };
   style?: { color?: string; strokeWidth?: number; dashed?: boolean; opacity?: number; arrowhead?: boolean };
   theme?: string;
 }
@@ -1221,7 +1399,7 @@ interface LegendInput {
   x: number;
   y: number;
   title?: string;
-  entries: Array<LegendColorEntry | LegendLineEntry>;
+  entries: Array<LegendColorEntry | LegendLineEntry | LegendShapeEntry>;
   theme?: string;
 }
 
@@ -1238,11 +1416,21 @@ interface LegendLineEntry {
   semanticType: SemanticLinkType;
 }
 
+interface LegendShapeEntry {
+  type: "shape";
+  label: string;
+  shape: "circle" | "rect" | "diamond" | "ellipse";
+  color: string;
+  borderColor?: string;
+  size?: number;
+}
+
 interface AuditReport {
   documentId: string;
   revision: number;
   issues: AuditIssue[];
   summary?: { totalIssues: number; bySeverity: Record<string, number> };
+  disclaimer?: string;
 }
 
 interface AuditIssue {

@@ -730,8 +730,9 @@ export function createMcpServer(deps: McpDependencies): McpServer {
         end: z.object({ x: z.number(), y: z.number() }).optional(),
         semanticType: z.enum(["information", "sensing", "artificial-noise", "leakage", "trajectory"]),
         geometry: z.object({
-          type: z.enum(["line", "beam"]).optional(),
-          beamWidth: z.number().optional(),
+          type: z.enum(["line", "curve", "beam"]).optional(),
+          curvature: z.number().optional().describe("For curve: control point offset from midpoint"),
+          beamWidth: z.number().optional().describe("For beam: polygon width"),
         }).optional(),
         style: z.object({
           color: z.string().optional(),
@@ -833,6 +834,14 @@ export function createMcpServer(deps: McpDependencies): McpServer {
               type: z.literal("line"),
               label: z.string(),
               semanticType: z.enum(["information", "sensing", "artificial-noise", "leakage", "trajectory"]),
+            }),
+            z.object({
+              type: z.literal("shape"),
+              label: z.string(),
+              shape: z.enum(["circle", "rect", "diamond", "ellipse"]),
+              color: z.string(),
+              borderColor: z.string().optional(),
+              size: z.number().optional(),
             }),
           ]),
         ).min(1),
