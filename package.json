@@ -14,7 +14,9 @@
   },
   "workspaces": [
     "packages/svgcanvas",
-    "packages/react-test"
+    "packages/react-test",
+    "packages/academic-figure-core",
+    "packages/academic-figure-mcp"
   ],
   "scripts": {
     "lint": "standard .",
