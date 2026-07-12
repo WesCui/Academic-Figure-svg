@@ -1,5 +1,10 @@
 <img src="https://svg-edit.github.io/svgedit/src/editor/images/logo.svg" width="50" height="50" />
 
+<p align="center">
+  <a href="./README.md"><strong>English</strong></a> |
+  <a href="./README.zh-CN.md"><strong>中文</strong></a>
+</p>
+
 # SVGEdit + Academic Figure MCP
 
 [![npm](https://img.shields.io/npm/v/svgedit.svg)](https://www.npmjs.com/package/svgedit)
