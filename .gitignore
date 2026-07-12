@@ -18,3 +18,12 @@ instrumented
 .idea
 dist
 coverage/coverage-summary.json
+
+# --- Generated test / figure outputs (not source) ---
+generated-figure-test/
+workspace-test/
+test-results/
+packages/draw-test.log
+
+# MCP server runtime output — figures drawn via Claude Code / clients
+workspace/documents/

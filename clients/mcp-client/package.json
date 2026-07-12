@@ -1,0 +1,15 @@
+{
+  "name": "mcp-client",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Out-of-the-box MCP client and Claude Code integration for the Academic Figure MCP server.",
+  "scripts": {
+    "demo": "node src/demo.mjs",
+    "server": "node ../packages/academic-figure-mcp/dist/index.js",
+    "server:http": "SVG_MCP_HTTP_PORT=4321 node ../packages/academic-figure-mcp/dist/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

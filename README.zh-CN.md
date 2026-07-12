@@ -20,6 +20,7 @@
 
 ## 目录
 
+- [用 Claude Code 使用（核心用法）](#用-claude-code-使用核心用法)
 - [架构](#架构)
 - [项目结构](#项目结构)
 - [快速开始](#快速开始)
@@ -36,6 +37,42 @@
 - [MCP 工具速查](#mcp-工具速查)
 - [支持的 SVG 元素](#支持的-svg-元素)
 - [原始 SVGEdit 文档](#原始-svgedit-文档)
+
+---
+
+## 用 Claude Code 使用（核心用法）
+
+> **本项目存在的意义，就是让大模型通过 MCP 帮你画学术图。** 注册一次服务器，之后只需用自然语言
+> 让 Claude Code 去画图即可。你给 Claude Code 配置的模型、斜杠命令、技能，都会叠加在绘图工具之上。
+
+### 1. 注册 —— 一条命令
+
+```bash
+npm run register          # → 运行 scripts/register-mcp.mjs
+```
+
+脚本会自动解析仓库路径、**在 `dist/` 缺失时自动构建**、以 **user 作用域**注册（无需在界面里点批准），
+并打印 `✔ Connected`。
+
+**或者，clone 之后直接交给 Claude Code 帮你注册** —— 对它说一句：
+
+> *"运行本仓库里的 `scripts/register-mcp.mjs`，帮我注册 academic-figure 这个 MCP server，并验证连接。"*
+
+### 2. 在 Claude Code 中如何调用
+
+约 20 个工具会自动以 `mcp__academic-figure__<tool>` 形式暴露（例如 `mcp__academic-figure__create_document`）。
+直接用自然语言下达指令：
+
+> *"画一张学术图：两栋等距建筑、三架相互通信的 UAV、一个图例和编号标注。然后导出 SVG 并渲染 PNG。"*
+
+非交互 / 脚本化调用：
+
+```bash
+claude -p "画一张带 3 个方块、用箭头相连的标注框图，然后导出 SVG 和 PNG。" \
+  --allowedTools "mcp__academic-figure__*"
+```
+
+> 完整参考（环境变量、项目级 `.mcp.json`、`claude mcp add` 的参数坑）见下方 [Claude Code 集成](#claude-code-集成)。
 
 ---
 
@@ -106,7 +143,7 @@ svgedit/
 │   └── academic-figure-mcp/             # 新增 — MCP 服务器与 HTTP 桥接
 │       ├── src/
 │       │   ├── index.ts                 #   入口（stdio + 可选 HTTP 桥接）
-│       │   ├── server.ts                #   MCP 服务器：注册了 13 个工具
+│       │   ├── server.ts                #   MCP 服务器：注册了 20+ 个工具
 │       │   ├── store/
 │       │   │   ├── document-store.ts    #   基于文件的持久化（JSON 状态）
 │       │   │   └── snapshot-store.ts    #   用于回滚的版本快照
@@ -201,7 +238,7 @@ cd packages/academic-figure-mcp && npm test
 
 ## MCP 服务器
 
-MCP 服务器（`@academic-figure/mcp`）是一个基于 Node.js 的 stdio 服务器，实现了 [模型上下文协议](https://modelcontextprotocol.io)。它暴露了 13 个工具，供 LLM 用于创建和操作结构化的 SVG 文档。
+MCP 服务器（`@academic-figure/mcp`）是一个基于 Node.js 的 stdio 服务器，实现了 [模型上下文协议](https://modelcontextprotocol.io)。它暴露了 20+ 个工具，供 LLM 用于创建和操作结构化的 SVG 文档。
 
 ### MCP 工具参考
 
@@ -264,24 +301,63 @@ MCP 服务器（`@academic-figure/mcp`）是一个基于 Node.js 的 stdio 服�
 | `SVG_MCP_WORKSPACE` | `./workspace` | 文档存储的根目录 |
 | `SVG_MCP_HTTP_PORT` | `4321` | HTTP 桥接端口；设为 `0` 可禁用 |
 
-### Claude Code 集成
+### Claude Code 集成（完整参考）
 
-将以下内容添加到你的 Claude Code MCP 配置中：
+> 若已通过上方 [用 Claude Code 使用（核心用法）](#用-claude-code-使用核心用法) 注册过，可直接跳到下方
+> [在 Claude Code 中如何调用](#在-claude-code-中如何调用)。本节为完整参考（环境变量、项目级 `.mcp.json`、参数坑）。
+
+本服务器是一个标准的 MCP stdio 服务器，因此 Claude Code（或 Cursor / Codex）可以用你在其中配置的任何模型与技能来驱动绘图。
+
+#### 方式 A — 通过 CLI 注册（推荐）
+
+```bash
+# user 作用域：本机上的每一个 Claude Code 项目都可用
+claude mcp add --scope user academic-figure \
+  node "/absolute/path/to/packages/academic-figure-mcp/dist/index.js" \
+  -e "SVG_MCP_WORKSPACE=/absolute/path/to/workspace" \
+  -e "SVG_MCP_HTTP_PORT=0"
+```
+
+> ⚠️ 注意：`node` 命令必须**紧跟服务器名称之后**、放在所有 `-e` 参数之前。否则 `claude mcp add` 会报错 `missing required argument 'commandOrUrl'`。
+
+验证注册与健康检查：
+
+```bash
+claude mcp get academic-figure   # → Status: ✔ Connected
+```
+
+#### 方式 B — 项目级 `.mcp.json`
+
+在项目根目录放置一份 `.mcp.json`（仓库中已有一份现成的 `clients/mcp-client/.mcp.json`，复制到仓库根即可）：
 
 ```json
 {
   "mcpServers": {
     "academic-figure": {
       "command": "node",
-      "args": [
-        "/absolute/path/to/packages/academic-figure-mcp/dist/index.js"
-      ],
+      "args": ["packages/academic-figure-mcp/dist/index.js"],
       "env": {
-        "SVG_MCP_WORKSPACE": "/absolute/path/to/workspace"
+        "SVG_MCP_WORKSPACE": "./workspace",
+        "SVG_MCP_HTTP_PORT": "4321"
       }
     }
   }
 }
+```
+
+项目级服务器在 Claude Code 中会显示为"待批准（Pending approval）"，需在界面中点击批准后方可连接。
+
+#### 在 Claude Code 中如何调用
+
+注册成功后，约 20 个工具会自动以 `mcp__academic-figure__<tool>` 的形式暴露（例如 `mcp__academic-figure__create_document`）。直接用自然语言下达指令即可：
+
+> "画一张学术图：两栋等距建筑、三架相互通信的 UAV、一个图例和编号标注。然后导出 SVG 并渲染 PNG。"
+
+你配置的模型、自定义斜杠命令与技能都会叠加在绘图能力之上。若需非交互 / 脚本化调用：
+
+```bash
+claude -p "画一张带 3 个方块、用箭头相连的标注框图，然后导出 SVG 和 PNG。" \
+  --allowedTools "mcp__academic-figure__*"
 ```
 
 ---

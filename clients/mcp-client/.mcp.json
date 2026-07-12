@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "academic-figure": {
+      "command": "node",
+      "args": ["../packages/academic-figure-mcp/dist/index.js"],
+      "env": {
+        "SVG_MCP_WORKSPACE": "./workspace",
+        "SVG_MCP_HTTP_PORT": "4321"
+      }
+    }
+  }
+}

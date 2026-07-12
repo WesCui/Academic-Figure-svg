@@ -38,6 +38,7 @@
     "remark": "remark -q -f .",
     "version-bump": "node scripts/version-bump.mjs",
     "release": "node scripts/publish.mjs",
+    "register": "node scripts/register-mcp.mjs",
     "test-build": "run-s test build-docs build"
   },
   "repository": {

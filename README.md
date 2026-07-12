@@ -16,6 +16,45 @@
 
 ---
 
+## ⭐ Using with Claude Code (main use case)
+
+> **This project exists so an LLM can draw academic figures for you via MCP.** Register the
+> server once, then just *ask Claude Code in natural language* to create, render, and export a figure.
+> Your configured model, slash-commands, and skills all apply on top of the drawing tools.
+
+### 1. Register — one command
+
+```bash
+npm run register          # → runs scripts/register-mcp.mjs
+```
+
+The script auto-detects the repo paths, **builds the server if `dist/` is missing**,
+registers it in **user scope** (no UI approval needed), and prints `✔ Connected`.
+
+**Or let Claude Code register it for you** after cloning — just say:
+
+> *"Run `scripts/register-mcp.mjs` in this repo to register the academic-figure MCP server, then verify it's connected."*
+
+### 2. Call it from Claude Code
+
+The ~20 tools appear automatically as `mcp__academic-figure__<tool>`
+(e.g. `mcp__academic-figure__create_document`). Just ask:
+
+> *"Draw an academic figure: two isometric buildings, three UAVs communicating, a legend and
+> numbered callouts. Then export the SVG and render a PNG."*
+
+Non-interactive / scripted use:
+
+```bash
+claude -p "Draw a labeled block diagram with 3 blocks connected by arrows, then export SVG and PNG." \
+  --allowedTools "mcp__academic-figure__*"
+```
+
+> Full reference — env vars, project-scoped `.mcp.json`, and the `claude mcp add` gotcha —
+> is in [Claude Code Integration](#claude-code-integration) below.
+
+---
+
 ## The Visual Feedback Loop
 
 ```
@@ -54,6 +93,7 @@ AI Agent (Claude / Codex)
 
 ## Table of Contents
 
+- [Using with Claude Code (main use case)](#using-with-claude-code-main-use-case)
 - [Architecture](#architecture)
 - [Project Structure](#project-structure)
 - [Quick Start](#quick-start)
@@ -140,7 +180,7 @@ svgedit/
 │   └── academic-figure-mcp/             # NEW — MCP Server & HTTP Bridge
 │       ├── src/
 │       │   ├── index.ts                 #   Entry point (stdio + optional HTTP bridge)
-│       │   ├── server.ts                #   MCP server: 13 registered tools
+│       │   ├── server.ts                #   MCP server: 20+ registered tools
 │       │   ├── store/
 │       │   │   ├── document-store.ts    #   File-based persistence (JSON state)
 │       │   │   └── snapshot-store.ts    #   Revision snapshots for rollback
@@ -235,7 +275,7 @@ cd packages/academic-figure-mcp && npm test
 
 ## MCP Server
 
-The MCP server (`@academic-figure/mcp`) is a Node.js stdio server implementing the [Model Context Protocol](https://modelcontextprotocol.io/). It exposes 13 tools that LLMs can use to create and manipulate structured SVG documents.
+The MCP server (`@academic-figure/mcp`) is a Node.js stdio server implementing the [Model Context Protocol](https://modelcontextprotocol.io/). It exposes 20+ tools that LLMs can use to create and manipulate structured SVG documents.
 
 ### MCP Tools Reference
 
@@ -298,24 +338,71 @@ All errors return:
 | `SVG_MCP_WORKSPACE` | `./workspace` | Root directory for document storage |
 | `SVG_MCP_HTTP_PORT` | `4321` | HTTP bridge port; set to `0` to disable |
 
-### Claude Code Integration
+### Claude Code Integration (full reference)
 
-Add to your Claude Code MCP configuration:
+> Already registered via [Using with Claude Code](#using-with-claude-code-main-use-case)
+> above? You can skip to [Calling it from Claude Code](#calling-it-from-claude-code) below.
+> This section is the complete reference (env vars, project-scoped `.mcp.json`, gotchas).
+
+The server is a standard MCP stdio server, so Claude Code (or Cursor / Codex) can drive
+figure creation with whatever model and skills you configure there.
+
+#### Option A — register via CLI (recommended)
+
+```bash
+# User scope: available in every Claude Code project on this machine
+claude mcp add --scope user academic-figure \
+  node "/absolute/path/to/packages/academic-figure-mcp/dist/index.js" \
+  -e "SVG_MCP_WORKSPACE=/absolute/path/to/workspace" \
+  -e "SVG_MCP_HTTP_PORT=0"
+```
+
+> ⚠️ Gotcha: the `node` command must come **immediately after the server name**,
+> before any `-e` flags. Otherwise `claude mcp add` fails with
+> `missing required argument 'commandOrUrl'`.
+
+Verify the registration and health check:
+
+```bash
+claude mcp get academic-figure   # → Status: ✔ Connected
+```
+
+#### Option B — project-scoped `.mcp.json`
+
+Drop a `.mcp.json` at your project root (a ready one ships at
+`clients/mcp-client/.mcp.json` — copy it to the repo root):
 
 ```json
 {
   "mcpServers": {
     "academic-figure": {
       "command": "node",
-      "args": [
-        "/absolute/path/to/packages/academic-figure-mcp/dist/index.js"
-      ],
+      "args": ["packages/academic-figure-mcp/dist/index.js"],
       "env": {
-        "SVG_MCP_WORKSPACE": "/absolute/path/to/workspace"
+        "SVG_MCP_WORKSPACE": "./workspace",
+        "SVG_MCP_HTTP_PORT": "4321"
       }
     }
   }
 }
+```
+
+Project-scoped servers appear as *Pending approval* in Claude Code until you approve them in the UI.
+
+#### Calling it from Claude Code
+
+Once registered, the ~20 tools are exposed automatically as
+`mcp__academic-figure__<tool>` (e.g. `mcp__academic-figure__create_document`).
+Just ask in natural language:
+
+> "Create an academic figure: two isometric buildings, three UAVs communicating, a legend, and numbered callouts. Then export the SVG and render a PNG."
+
+Your configured model, custom slash-commands, and skills all apply on top of the drawing tools.
+For non-interactive / scripted use:
+
+```bash
+claude -p "Draw a labeled block diagram with 3 blocks connected by arrows, then export SVG and PNG." \
+  --allowedTools "mcp__academic-figure__*"
 ```
 
 ---
