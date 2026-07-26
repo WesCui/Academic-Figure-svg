@@ -10,7 +10,7 @@
 - **Active scope**: repository facts, architecture boundaries, compatibility rules, behavioral guardrails, and per-batch development constraints
 - **Runtime Schema requirement**: none
 - **Runtime Contract package requirement**: none
-- **Skill status**: generated in a later batch
+- **Skill status**: development Skill at `.agents/skills/academic-figure-development/`
 
 ## 1. Contract 在本项目中的含义
 
@@ -155,7 +155,7 @@ Code Agent 不得把 `planned`、`unconfirmed` 或 README 声明改写为 `exist
 默认实现顺序为：
 
 ```text
-开发 Contract 与 Skill
+开发 Contract 与 Skill（已建立）
 → 写入事务、Revision、Snapshot、Rollback
 → Academic Diagram Plan 与内置参考
 → 第一个 Plan Compiler 垂直切片
