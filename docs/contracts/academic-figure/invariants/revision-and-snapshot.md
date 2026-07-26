@@ -1,5 +1,7 @@
 # Revision and Snapshot Contract
 
+> **定位：Code Agent 开发护栏。** 本文用于约束实现行为，不是产品运行时协议，也不表示对应规划能力已经实现。
+
 - **Status at baseline**: existing-with-limitations
 - **Current basis**: document revision field and snapshot store
 - **Missing at baseline**: public history, rollback, full timing/coverage guarantees

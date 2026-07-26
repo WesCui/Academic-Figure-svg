@@ -1,5 +1,7 @@
 # Reference Use Policy
 
+> **定位：Code Agent 开发护栏。** 本文用于约束实现行为，不是产品运行时协议，也不表示对应规划能力已经实现。
+
 - **Status at baseline**: planned
 - **Applies to**: user-provided references and MCP built-in references
 - **Reference search**: out of scope for the current V2 plan

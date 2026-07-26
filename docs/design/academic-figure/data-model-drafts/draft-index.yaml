@@ -1,0 +1,23 @@
+draftSet: academic-figure-v2-data-model-exploration
+status: non-normative
+sourceBatch: 2
+movedByBatch: 3
+runtimeRequirement: false
+codeGenerationRequirement: false
+validatorRequirement: false
+compatibilityGuarantee: false
+agentRules:
+  - do-not-treat-as-active-contract
+  - do-not-add-runtime-validator-without-batch-approval
+  - do-not-modify-existing-mcp-tools-from-draft-alone
+  - do-not-add-core-dependencies-from-draft-alone
+drafts:
+  - common.schema.json
+  - figure-request.schema.json
+  - reference-definition.schema.json
+  - reference-analysis.schema.json
+  - academic-diagram-plan.schema.json
+  - asset-manifest.schema.json
+  - figure-operation.schema.json
+  - figure-audit-report.schema.json
+  - revision-transaction.schema.json

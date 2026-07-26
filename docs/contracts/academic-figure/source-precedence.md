@@ -1,58 +1,55 @@
 # Source Precedence Contract
 
-## Authority order
+> **定位：Code Agent 开发护栏。** 本文用于处理开发资料冲突，不是产品运行时配置。
 
-When sources disagree, apply this order:
+## 开发时的资料顺序
 
-1. Current explicit user instruction.
-2. `docs/PDR/Academic-Figure-MCP-PDR .md`.
-3. Active documents under `docs/contracts/academic-figure/`.
-4. Approved runtime Schema, MCP tool Contract, and ADR.
-5. Current implementation and tests.
-6. README and other descriptive documents.
-7. Archived or historical material.
+1. 当前用户明确指令；
+2. 当前已批准的批次 Contract；
+3. `docs/PDR/Academic-Figure-MCP-PDR .md`；
+4. 稳定开发 Contract；
+5. 当前代码、测试和配置所证明的仓库事实；
+6. README 和其他说明材料；
+7. 非规范设计草案；
+8. 归档和历史材料。
 
-## Target versus current behavior
+## 不同资料负责不同问题
 
-The PDR defines target behavior.
+- 用户指令：决定当前要做什么。
+- 批次 Contract：决定当前允许改什么、禁止改什么、如何验收。
+- PDR：决定产品目标和非目标。
+- 稳定 Contract：决定长期架构和开发护栏。
+- 代码与测试：决定当前实际实现。
+- README：提供线索和使用说明。
+- 设计草案：提供候选方案，不自动形成实现要求。
 
-`repository-baseline.md`, `capability-status.md`, and `mcp-tool-status.md` define current capability status for the accepted baseline.
+## 冲突处理
 
-A target requirement MUST NOT be restated as an existing capability without:
+以下情况必须停止：
 
-- implementation evidence;
-- public interface evidence where applicable;
-- tests or an explicit untested status;
-- capability-status update.
+- 批次 Contract 与 PDR 冲突；
+- 批次 Contract 允许范围与当前用户指令冲突；
+- 稳定 Contract 与真实代码结构显著不一致；
+- 设计草案要求修改未授权架构；
+- README 声明与代码证据不一致。
 
-## Conflict handling
+停止时报告冲突条款，不得静默选择一方。
 
-When two active Contract documents conflict:
+## Target 与 Current
 
-1. stop the affected implementation;
-2. report the conflicting clauses;
-3. do not silently reconcile them;
-4. obtain an explicit decision;
-5. update the Contract set before implementation.
+PDR 证明目标，不证明当前实现。
 
-## README handling
+代码和测试证明当前行为，不自动改变产品目标。
 
-README content is descriptive evidence, not sufficient proof of implementation.
+Code Agent 不得：
 
-A README-only capability is `planned`, `declared-only`, or `unconfirmed` until code evidence exists.
+- 将 PDR 中的 planned 能力写成 existing；
+- 将 README 声明当作实现证据；
+- 将设计草案当作批次要求；
+- 将未运行测试写成通过。
 
-## Test handling
+## 基线变化
 
-An unexecuted test MUST NOT be reported as passed.
+分支或 commit 发生变化时，Code Agent 必须重新检查与当前任务相关的代码。
 
-A source inspection may establish that a test exists, but not that the current worktree passes it.
-
-## Baseline changes
-
-When the branch or commit changes materially:
-
-- rerun the repository fact investigation;
-- update `repository-baseline.md`;
-- update capability statuses;
-- review MCP tool status;
-- do not continue using stale facts silently.
+旧事实报告可以作为线索，不能替代当前检查。

@@ -1,5 +1,7 @@
 # Asset Security Contract
 
+> **定位：Code Agent 开发护栏。** 本文用于约束实现行为，不是产品运行时协议，也不表示对应规划能力已经实现。
+
 - **Status at baseline**: planned Asset lifecycle; generic SVG sanitization exists
 - **Applies to**: user-imported SVG assets and built-in SVG assets
 
