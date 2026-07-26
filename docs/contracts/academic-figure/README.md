@@ -1,12 +1,13 @@
 # Academic Figure MCP V2 Contracts
 
-- **Contract set**: Batch 1 — documentation foundation
+- **Contract set**: Batch 1 documentation foundation + Batch 2 machine-readable data Contracts
 - **Baseline branch**: `y`
-- **Baseline commit**: `f8ddf7167cfa082ed68d4c0e3d0a3db0e1a2dc71`
+- **Implementation baseline commit**: `f8ddf7167cfa082ed68d4c0e3d0a3db0e1a2dc71`
+- **Batch 2 branch head inspected**: `79d4c41f0b56306aab21338c6170c8dc7a7642f4`
 - **PDR**: `docs/PDR/Academic-Figure-MCP-PDR .md`
 - **Status**: active documentation Contract
-- **Scope**: architecture boundaries, capability status, and behavioral invariants
-- **Runtime Schema**: not included in this batch
+- **Scope**: architecture boundaries, capability status, behavioral invariants, and V2 data Contracts
+- **Runtime Schema**: JSON Schema Contracts added under `schemas/`; runtime registration is not included
 - **Skill**: not included in this batch
 
 ## Purpose
@@ -58,17 +59,22 @@ For current implementation status, `repository-baseline.md` and `capability-stat
 | `invariants/local-edit-scope.md` | Defines non-target region protection. |
 | `invariants/quality-gate.md` | Separates current Audit from the target Quality Gate. |
 | `invariants/svg-edit-roundtrip.md` | Defines target SVG-Edit save semantics. |
+| `schema-source-decision.md` | Records the Batch 2 JSON Schema source decision. |
+| `schema-index.md` | Lists V2 machine-readable data Contracts. |
+| `contract-index.yaml` | Machine-readable Contract set index. |
+| `schemas/` | JSON Schema Draft 2020-12 data Contracts. |
+| `fixtures/` | Valid and intentionally invalid Contract examples. |
 
 ## Batch boundary
 
-This batch creates documentation only.
+Batch 1 and Batch 2 create Contract documentation and machine-readable Contract files only.
 
 It does not:
 
 - modify `packages/academic-figure-core`;
 - modify `packages/academic-figure-mcp`;
 - extract Zod schemas from `server.ts`;
-- add JSON Schema;
+- register JSON Schema in runtime code;
 - add a Contract package;
 - add or rename MCP tools;
 - implement references or assets;
@@ -78,11 +84,16 @@ It does not:
 - change SVG-Edit;
 - add dependencies.
 
-## Next decision
+## Batch 2 decision
 
-Before runtime Contract generation, the project must decide whether the V2 runtime Schema source belongs in:
+The normative V2 cross-boundary data Contracts are JSON Schema Draft 2020-12 files under:
 
-- `packages/academic-figure-mcp/src/contracts/`; or
-- a dedicated `packages/academic-figure-contracts/` package.
+```text
+docs/contracts/academic-figure/schemas/
+```
 
-This Batch does not make that package-boundary decision.
+The current 20 MCP tools continue to use their existing Zod schemas.
+
+Batch 2 does not register the new Schemas at runtime, add a workspace package, or change package dependencies.
+
+See `schema-source-decision.md` for conformance requirements and future runtime options.

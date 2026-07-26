@@ -1,0 +1,562 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:academic-figure:contract:figure-operation:1.0",
+  "title": "Figure Operation Batch Contract",
+  "description": "Finite, validated operations produced from a natural-language revision intent.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "operationId",
+    "documentId",
+    "expectedRevision",
+    "actor",
+    "summary",
+    "scope",
+    "operations"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/SchemaVersion"
+    },
+    "operationId": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/OperationId"
+    },
+    "documentId": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/DocumentId"
+    },
+    "expectedRevision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "actor": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Actor"
+    },
+    "summary": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "element",
+            "group",
+            "region",
+            "panel",
+            "document"
+          ]
+        },
+        "targetIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "kind": {
+                "not": {
+                  "const": "document"
+                }
+              }
+            },
+            "required": [
+              "kind"
+            ]
+          },
+          "then": {
+            "required": [
+              "targetIds"
+            ]
+          }
+        }
+      ]
+    },
+    "operations": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "items": {
+        "$ref": "#/$defs/FigureOperation"
+      }
+    }
+  },
+  "$defs": {
+    "FigureOperation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/AddEntity"
+        },
+        {
+          "$ref": "#/$defs/RemoveEntity"
+        },
+        {
+          "$ref": "#/$defs/UpdateEntity"
+        },
+        {
+          "$ref": "#/$defs/TransformElements"
+        },
+        {
+          "$ref": "#/$defs/AlignElements"
+        },
+        {
+          "$ref": "#/$defs/DistributeElements"
+        },
+        {
+          "$ref": "#/$defs/AddRelation"
+        },
+        {
+          "$ref": "#/$defs/RemoveRelation"
+        },
+        {
+          "$ref": "#/$defs/RerouteRelation"
+        },
+        {
+          "$ref": "#/$defs/ReplaceAsset"
+        },
+        {
+          "$ref": "#/$defs/RelayoutRegion"
+        },
+        {
+          "$ref": "#/$defs/ApplyStyleToken"
+        },
+        {
+          "$ref": "#/$defs/ResizeTextContainer"
+        },
+        {
+          "$ref": "#/$defs/MoveInsideCanvas"
+        },
+        {
+          "$ref": "#/$defs/NormalizePeerSize"
+        }
+      ]
+    },
+    "AddEntity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "entity"
+      ],
+      "properties": {
+        "op": {
+          "const": "add-entity"
+        },
+        "entity": {
+          "$ref": "urn:academic-figure:contract:academic-diagram-plan:1.0#/$defs/DiagramEntity"
+        }
+      }
+    },
+    "RemoveEntity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "entityId"
+      ],
+      "properties": {
+        "op": {
+          "const": "remove-entity"
+        },
+        "entityId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        }
+      }
+    },
+    "UpdateEntity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "entityId",
+        "patch"
+      ],
+      "properties": {
+        "op": {
+          "const": "update-entity"
+        },
+        "entityId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "patch": {
+          "type": "object",
+          "additionalProperties": false,
+          "minProperties": 1,
+          "properties": {
+            "type": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+            },
+            "label": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+            },
+            "role": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+            },
+            "importance": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Importance"
+            },
+            "assetQuery": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+            },
+            "assetId": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+            },
+            "tags": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+              }
+            }
+          }
+        }
+      }
+    },
+    "TransformElements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "elementIds"
+      ],
+      "properties": {
+        "op": {
+          "const": "transform-elements"
+        },
+        "elementIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        },
+        "translate": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            }
+          }
+        },
+        "scale": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "x",
+            "y"
+          ],
+          "properties": {
+            "x": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            },
+            "y": {
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          }
+        },
+        "rotateDegrees": {
+          "type": "number",
+          "minimum": -360,
+          "maximum": 360
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "translate"
+          ]
+        },
+        {
+          "required": [
+            "scale"
+          ]
+        },
+        {
+          "required": [
+            "rotateDegrees"
+          ]
+        }
+      ]
+    },
+    "AlignElements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "elementIds",
+        "alignment"
+      ],
+      "properties": {
+        "op": {
+          "const": "align-elements"
+        },
+        "elementIds": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        },
+        "alignment": {
+          "type": "string",
+          "enum": [
+            "left",
+            "center",
+            "right",
+            "top",
+            "middle",
+            "bottom"
+          ]
+        }
+      }
+    },
+    "DistributeElements": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "elementIds",
+        "direction"
+      ],
+      "properties": {
+        "op": {
+          "const": "distribute-elements"
+        },
+        "elementIds": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "horizontal",
+            "vertical"
+          ]
+        }
+      }
+    },
+    "AddRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "relation"
+      ],
+      "properties": {
+        "op": {
+          "const": "add-relation"
+        },
+        "relation": {
+          "$ref": "urn:academic-figure:contract:academic-diagram-plan:1.0#/$defs/DiagramRelation"
+        }
+      }
+    },
+    "RemoveRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "relationId"
+      ],
+      "properties": {
+        "op": {
+          "const": "remove-relation"
+        },
+        "relationId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        }
+      }
+    },
+    "RerouteRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "relationId",
+        "routingHint"
+      ],
+      "properties": {
+        "op": {
+          "const": "reroute-relation"
+        },
+        "relationId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "routingHint": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "straight",
+            "orthogonal",
+            "wireless-curve",
+            "dashed-dependency",
+            "reflection-path",
+            "transmission-path"
+          ]
+        }
+      }
+    },
+    "ReplaceAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "elementId",
+        "assetId"
+      ],
+      "properties": {
+        "op": {
+          "const": "replace-asset"
+        },
+        "elementId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "assetId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        }
+      }
+    },
+    "RelayoutRegion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "regionId"
+      ],
+      "properties": {
+        "op": {
+          "const": "relayout-region"
+        },
+        "regionId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "layoutProfile": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        }
+      }
+    },
+    "ApplyStyleToken": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "targetIds",
+        "token",
+        "value"
+      ],
+      "properties": {
+        "op": {
+          "const": "apply-style-token"
+        },
+        "targetIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        },
+        "token": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "value": {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        }
+      }
+    },
+    "ResizeTextContainer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "elementId"
+      ],
+      "properties": {
+        "op": {
+          "const": "resize-text-container"
+        },
+        "elementId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "padding": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1000
+        }
+      }
+    },
+    "MoveInsideCanvas": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "elementIds"
+      ],
+      "properties": {
+        "op": {
+          "const": "move-inside-canvas"
+        },
+        "elementIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        }
+      }
+    },
+    "NormalizePeerSize": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "elementIds"
+      ],
+      "properties": {
+        "op": {
+          "const": "normalize-peer-size"
+        },
+        "elementIds": {
+          "type": "array",
+          "minItems": 2,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        }
+      }
+    }
+  }
+}

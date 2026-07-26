@@ -1,0 +1,389 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:academic-figure:contract:academic-diagram-plan:1.0",
+  "title": "Academic Diagram Plan Contract",
+  "description": "Semantic and compositional plan compiled into the existing structured SVG document.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "planId",
+    "status",
+    "family",
+    "layoutProfile",
+    "styleProfile",
+    "regions",
+    "entities",
+    "relations",
+    "groups",
+    "annotations",
+    "assumptions",
+    "unresolved"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/SchemaVersion"
+    },
+    "planId": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "draft",
+        "needs-confirmation",
+        "confirmed",
+        "partially-stale"
+      ]
+    },
+    "family": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/AcademicFigureFamily"
+    },
+    "domain": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+    },
+    "layoutProfile": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+    },
+    "styleProfile": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+    },
+    "reference": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/ReferenceSelection"
+    },
+    "regions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DiagramRegion"
+      }
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DiagramEntity"
+      }
+    },
+    "relations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DiagramRelation"
+      }
+    },
+    "groups": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DiagramGroup"
+      }
+    },
+    "annotations": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DiagramAnnotation"
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+      }
+    },
+    "unresolved": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/DiagramQuestion"
+      }
+    }
+  },
+  "$defs": {
+    "DiagramRegion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "role",
+        "position"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "role": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        },
+        "position": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/RegionPosition"
+        },
+        "order": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "parentRegionId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "description": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        }
+      }
+    },
+    "DiagramEntity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "type": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "label": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        },
+        "role": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "regionId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "groupIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        },
+        "importance": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Importance"
+        },
+        "assetQuery": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        },
+        "assetId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "tags": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        }
+      }
+    },
+    "RelationEndpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "entityId"
+      ],
+      "properties": {
+        "entityId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "port": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        }
+      }
+    },
+    "DiagramRelation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "source",
+        "target",
+        "type",
+        "directed"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entityId"
+          ],
+          "properties": {
+            "entityId": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+            },
+            "port": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+            }
+          }
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "entityId"
+          ],
+          "properties": {
+            "entityId": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+            },
+            "port": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+            }
+          }
+        },
+        "type": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "label": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        },
+        "directed": {
+          "type": "boolean"
+        },
+        "routingHint": {
+          "type": "string",
+          "enum": [
+            "auto",
+            "straight",
+            "orthogonal",
+            "wireless-curve",
+            "dashed-dependency",
+            "reflection-path",
+            "transmission-path"
+          ]
+        }
+      }
+    },
+    "DiagramGroup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "label": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        },
+        "regionId": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "memberEntityIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        },
+        "memberGroupIds": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "memberEntityIds"
+          ]
+        },
+        {
+          "required": [
+            "memberGroupIds"
+          ]
+        }
+      ]
+    },
+    "DiagramAnnotation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "text",
+        "target"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "text": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        },
+        "target": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "id"
+          ],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "entity",
+                "relation",
+                "region",
+                "group",
+                "canvas"
+              ]
+            },
+            "id": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+            }
+          }
+        },
+        "importance": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Importance"
+        }
+      }
+    },
+    "DiagramQuestion": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "category",
+        "prompt",
+        "blocking"
+      ],
+      "properties": {
+        "id": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "relation-direction",
+            "entity-identity",
+            "execution-order",
+            "group-membership",
+            "reference-scope",
+            "asset-semantic",
+            "other"
+          ]
+        },
+        "prompt": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        },
+        "blocking": {
+          "type": "boolean"
+        },
+        "relatedIds": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        }
+      }
+    }
+  }
+}

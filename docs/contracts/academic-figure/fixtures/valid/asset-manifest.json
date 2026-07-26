@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0",
+  "id": "workspace.custom-uav",
+  "version": "1.0.0",
+  "name": "Custom UAV",
+  "aliases": [
+    "drone",
+    "UAV",
+    "无人机"
+  ],
+  "category": "communication",
+  "source": "workspace",
+  "style": "outline",
+  "file": ".academic-figure/assets/custom-uav/asset.svg",
+  "preview": ".academic-figure/assets/custom-uav/preview.png",
+  "viewBox": {
+    "minX": 0,
+    "minY": 0,
+    "width": 256,
+    "height": 256
+  },
+  "sanitization": {
+    "status": "passed",
+    "sanitizedAt": "2026-07-26T10:00:00Z",
+    "removedFeatures": [
+      "script",
+      "event-handler",
+      "remote-image"
+    ]
+  },
+  "insertMode": "inline-svg",
+  "tags": [
+    "uav",
+    "wireless"
+  ],
+  "provenance": {
+    "origin": "User-provided workspace asset"
+  }
+}

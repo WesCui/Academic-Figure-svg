@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0",
+  "requestId": "request.uav-ris.001",
+  "operationId": "op.uav-ris.create.001",
+  "mode": "create",
+  "instruction": "Create a UAV-RIS communication system model.",
+  "interactionMode": "plan-confirmation",
+  "actor": {
+    "type": "user",
+    "id": "user.local"
+  },
+  "sourceContext": {
+    "files": [
+      "docs/method.md"
+    ]
+  },
+  "reference": {
+    "type": "builtin",
+    "id": "builtin.ris-reflection-transmission",
+    "scope": [
+      "composition",
+      "style"
+    ]
+  },
+  "output": {
+    "documentId": "uav-ris-system",
+    "name": "UAV-RIS System Model",
+    "width": 1600,
+    "height": 900,
+    "formats": [
+      "svg",
+      "png"
+    ]
+  }
+}

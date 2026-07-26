@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0",
+  "analysisId": "analysis.bad",
+  "reference": {
+    "type": "user",
+    "id": "user.ref",
+    "scope": [
+      "composition"
+    ]
+  },
+  "figureFamily": "scenario",
+  "composition": {
+    "panelCount": 1,
+    "regions": [
+      {
+        "id": "main",
+        "role": "main",
+        "position": "center"
+      }
+    ],
+    "hasCentralObject": true,
+    "hasParallelBranches": false,
+    "hasInsetDetail": false
+  },
+  "style": {
+    "dimensionality": "2d",
+    "density": "low",
+    "iconUsage": "light",
+    "borderStyle": "solid",
+    "paletteDescription": "Blue"
+  },
+  "reusablePatterns": [],
+  "prohibitedCopyingAcknowledged": false
+}

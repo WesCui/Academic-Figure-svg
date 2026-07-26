@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "transactionId": "txn.uav-ris.013",
+  "operationId": "op.uav-ris.revise.002",
+  "documentId": "uav-ris-system",
+  "kind": "revise",
+  "actor": {
+    "type": "agent",
+    "id": "claude-code"
+  },
+  "summary": "Replace UAV asset and relayout receiver region.",
+  "expectedRevision": 12,
+  "sourceRevision": 12,
+  "resultingRevision": 13,
+  "status": "committed",
+  "snapshotId": "snapshot.uav-ris.012",
+  "affectedElementIds": [
+    "uav-ris",
+    "users"
+  ],
+  "createdAt": "2026-07-26T10:06:00Z"
+}

@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0",
+  "type": "user",
+  "id": "user.ris-example-1",
+  "displayName": "RIS system model reference",
+  "mediaType": "image/png",
+  "path": ".academic-figure/references/ris-example-1.png",
+  "defaultScope": [
+    "composition"
+  ]
+}

@@ -1,0 +1,184 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:academic-figure:contract:revision-transaction:1.0",
+  "title": "Revision Transaction Contract",
+  "description": "Record of a task-level formal document mutation.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "transactionId",
+    "operationId",
+    "documentId",
+    "kind",
+    "actor",
+    "summary",
+    "expectedRevision",
+    "sourceRevision",
+    "status",
+    "affectedElementIds",
+    "createdAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/SchemaVersion"
+    },
+    "transactionId": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+    },
+    "operationId": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/OperationId"
+    },
+    "documentId": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/DocumentId"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "create",
+        "revise",
+        "layout",
+        "fix",
+        "asset-replacement",
+        "editor-save",
+        "rollback"
+      ]
+    },
+    "actor": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Actor"
+    },
+    "summary": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+    },
+    "expectedRevision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "sourceRevision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "resultingRevision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "committed",
+        "conflict",
+        "failed"
+      ]
+    },
+    "snapshotId": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+    },
+    "rollbackFromRevision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "affectedElementIds": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+      }
+    },
+    "error": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "message"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "REVISION_CONFLICT",
+            "VALIDATION_ERROR",
+            "DOCUMENT_NOT_FOUND",
+            "ELEMENT_NOT_FOUND",
+            "REFERENCE_NOT_FOUND",
+            "ASSET_NOT_FOUND",
+            "QUALITY_GATE_FAILED",
+            "RENDER_FAILED",
+            "INTERNAL_ERROR"
+          ]
+        },
+        "message": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        },
+        "details": {
+          "type": "object"
+        }
+      }
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "const": "committed"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "resultingRevision",
+          "snapshotId"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "status": {
+            "enum": [
+              "conflict",
+              "failed"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "then": {
+        "required": [
+          "error"
+        ],
+        "not": {
+          "required": [
+            "resultingRevision"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "kind": {
+            "const": "rollback"
+          }
+        },
+        "required": [
+          "kind"
+        ]
+      },
+      "then": {
+        "required": [
+          "rollbackFromRevision"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "1.0",
+  "type": "builtin",
+  "id": "builtin.method-dual-branch-fusion",
+  "name": "Dual-branch fusion framework",
+  "family": "method-framework",
+  "description": "Two parallel encoders feeding a central fusion module.",
+  "recommendedFor": [
+    "multimodal learning",
+    "dual-stream network"
+  ],
+  "previewPath": "references/builtin/method-dual-branch-fusion/preview.png",
+  "layoutProfile": "dual-branch-fusion",
+  "styleProfile": "academic-light",
+  "regions": [
+    {
+      "id": "left",
+      "role": "input branches",
+      "position": "left",
+      "order": 0
+    },
+    {
+      "id": "center",
+      "role": "fusion",
+      "position": "center",
+      "order": 1
+    },
+    {
+      "id": "right",
+      "role": "output",
+      "position": "right",
+      "order": 2
+    }
+  ],
+  "provenance": {
+    "distributionBasis": "Project-created reference template",
+    "license": "Repository license"
+  }
+}

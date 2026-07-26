@@ -1,0 +1,167 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:academic-figure:contract:reference-analysis:1.0",
+  "title": "Reference Analysis Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "analysisId",
+    "reference",
+    "figureFamily",
+    "composition",
+    "style",
+    "reusablePatterns",
+    "prohibitedCopyingAcknowledged"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/SchemaVersion"
+    },
+    "analysisId": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+    },
+    "reference": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/ReferenceSelection"
+    },
+    "figureFamily": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/AcademicFigureFamily"
+    },
+    "composition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "panelCount",
+        "regions",
+        "hasCentralObject",
+        "hasParallelBranches",
+        "hasInsetDetail"
+      ],
+      "properties": {
+        "direction": {
+          "type": "string",
+          "enum": [
+            "left-to-right",
+            "top-to-bottom"
+          ]
+        },
+        "panelCount": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 12
+        },
+        "regions": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "role",
+              "position"
+            ],
+            "properties": {
+              "id": {
+                "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+              },
+              "role": {
+                "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+              },
+              "position": {
+                "$ref": "urn:academic-figure:contract:common:1.0#/$defs/RegionPosition"
+              },
+              "order": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "description": {
+                "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+              }
+            }
+          }
+        },
+        "hasCentralObject": {
+          "type": "boolean"
+        },
+        "hasParallelBranches": {
+          "type": "boolean"
+        },
+        "hasInsetDetail": {
+          "type": "boolean"
+        }
+      }
+    },
+    "style": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "dimensionality",
+        "density",
+        "iconUsage",
+        "borderStyle",
+        "paletteDescription"
+      ],
+      "properties": {
+        "dimensionality": {
+          "type": "string",
+          "enum": [
+            "2d",
+            "pseudo-3d"
+          ]
+        },
+        "density": {
+          "type": "string",
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ]
+        },
+        "iconUsage": {
+          "type": "string",
+          "enum": [
+            "none",
+            "light",
+            "heavy"
+          ]
+        },
+        "borderStyle": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "dashed",
+            "mixed"
+          ]
+        },
+        "paletteDescription": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        }
+      }
+    },
+    "reusablePatterns": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+      }
+    },
+    "assumptions": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+      }
+    },
+    "prohibitedCopyingAcknowledged": {
+      "const": true
+    }
+  }
+}

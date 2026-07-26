@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0",
+  "reportId": "audit.uav-ris.012",
+  "documentId": "uav-ris-system",
+  "revision": 12,
+  "profile": "baseline-audit-v1",
+  "render": {
+    "succeeded": true,
+    "previewPath": "workspace/documents/uav-ris-system/preview.png",
+    "width": 1600,
+    "height": 900
+  },
+  "checksExecuted": [
+    "render",
+    "bounds",
+    "overlap",
+    "small-text",
+    "density"
+  ],
+  "qualityGate": {
+    "status": "not-evaluated",
+    "complete": false,
+    "renderSucceeded": true,
+    "invalidReferences": 0,
+    "outOfBoundsElements": -1,
+    "criticalOverlaps": 0,
+    "clippedTexts": 0,
+    "connectorNodeIntersections": 0,
+    "danglingConnectorEndpoints": 0
+  },
+  "issues": [],
+  "summary": {
+    "blockingIssues": 0,
+    "warnings": 0
+  },
+  "generatedAt": "2026-07-26T10:05:00Z"
+}

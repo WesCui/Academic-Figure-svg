@@ -1,0 +1,134 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:academic-figure:contract:common:1.0",
+  "title": "Academic Figure Common Contract Definitions",
+  "type": "object",
+  "additionalProperties": false,
+  "$defs": {
+    "SchemaVersion": {
+      "type": "string",
+      "const": "1.0"
+    },
+    "Identifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z][A-Za-z0-9._:-]{0,127}$"
+    },
+    "DocumentId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "OperationId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    },
+    "NonEmptyString": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "PathString": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096
+    },
+    "AcademicFigureFamily": {
+      "type": "string",
+      "enum": [
+        "system-model",
+        "method-framework",
+        "algorithm-workflow",
+        "scenario",
+        "composite"
+      ]
+    },
+    "ReferenceScope": {
+      "type": "string",
+      "enum": [
+        "composition",
+        "style",
+        "components",
+        "full"
+      ]
+    },
+    "RegionPosition": {
+      "type": "string",
+      "enum": [
+        "left",
+        "center",
+        "right",
+        "top",
+        "bottom",
+        "foreground",
+        "background",
+        "inset",
+        "custom"
+      ]
+    },
+    "Importance": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "secondary",
+        "background",
+        "annotation"
+      ]
+    },
+    "Actor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "user",
+            "agent",
+            "editor",
+            "system"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/Identifier"
+        }
+      }
+    },
+    "ReferenceSelection": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type",
+        "id",
+        "scope"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "user",
+            "builtin"
+          ]
+        },
+        "id": {
+          "$ref": "#/$defs/Identifier"
+        },
+        "scope": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "$ref": "#/$defs/ReferenceScope"
+          }
+        }
+      }
+    }
+  }
+}

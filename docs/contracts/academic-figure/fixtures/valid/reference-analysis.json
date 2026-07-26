@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0",
+  "analysisId": "analysis.ris-example-1",
+  "reference": {
+    "type": "user",
+    "id": "user.ris-example-1",
+    "scope": [
+      "composition",
+      "style"
+    ]
+  },
+  "figureFamily": "scenario",
+  "composition": {
+    "direction": "left-to-right",
+    "panelCount": 1,
+    "regions": [
+      {
+        "id": "sender",
+        "role": "base station",
+        "position": "left"
+      },
+      {
+        "id": "relay",
+        "role": "UAV-RIS",
+        "position": "center"
+      },
+      {
+        "id": "receivers",
+        "role": "users",
+        "position": "right"
+      }
+    ],
+    "hasCentralObject": true,
+    "hasParallelBranches": false,
+    "hasInsetDetail": false
+  },
+  "style": {
+    "dimensionality": "pseudo-3d",
+    "density": "medium",
+    "iconUsage": "heavy",
+    "borderStyle": "mixed",
+    "paletteDescription": "Low-saturation blue and green with yellow emphasis."
+  },
+  "reusablePatterns": [
+    "central relay object",
+    "different line styles for communication paths"
+  ],
+  "assumptions": [],
+  "warnings": [],
+  "prohibitedCopyingAcknowledged": true
+}

@@ -1,0 +1,222 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:academic-figure:contract:asset-manifest:1.0",
+  "title": "Asset Manifest Contract",
+  "description": "Manifest for a built-in, workspace, user-global, primitive, or component asset.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "id",
+    "version",
+    "name",
+    "aliases",
+    "category",
+    "source",
+    "style",
+    "viewBox",
+    "sanitization",
+    "insertMode",
+    "tags"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/SchemaVersion"
+    },
+    "id": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?$"
+    },
+    "name": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+    },
+    "aliases": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+      }
+    },
+    "category": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+    },
+    "source": {
+      "type": "string",
+      "enum": [
+        "workspace",
+        "user-global",
+        "builtin",
+        "primitive",
+        "component"
+      ]
+    },
+    "style": {
+      "type": "string",
+      "enum": [
+        "outline",
+        "flat",
+        "filled",
+        "multicolor",
+        "mixed",
+        "unknown"
+      ]
+    },
+    "file": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/PathString"
+    },
+    "preview": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/PathString"
+    },
+    "viewBox": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "minX",
+        "minY",
+        "width",
+        "height"
+      ],
+      "properties": {
+        "minX": {
+          "type": "number"
+        },
+        "minY": {
+          "type": "number"
+        },
+        "width": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "height": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        }
+      }
+    },
+    "sanitization": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "removedFeatures"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "rejected",
+            "pending",
+            "not-applicable"
+          ]
+        },
+        "sanitizedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "removedFeatures": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          }
+        }
+      }
+    },
+    "insertMode": {
+      "type": "string",
+      "enum": [
+        "inline-svg",
+        "generated"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "origin": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        },
+        "author": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        },
+        "license": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        },
+        "sourceUrl": {
+          "type": "string",
+          "format": "uri"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "enum": [
+              "workspace",
+              "user-global",
+              "builtin"
+            ]
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "required": [
+          "file",
+          "preview"
+        ],
+        "properties": {
+          "insertMode": {
+            "const": "inline-svg"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "source": {
+            "enum": [
+              "primitive",
+              "component"
+            ]
+          }
+        },
+        "required": [
+          "source"
+        ]
+      },
+      "then": {
+        "properties": {
+          "insertMode": {
+            "const": "generated"
+          },
+          "sanitization": {
+            "properties": {
+              "status": {
+                "const": "not-applicable"
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

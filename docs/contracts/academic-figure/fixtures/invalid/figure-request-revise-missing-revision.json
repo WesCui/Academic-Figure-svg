@@ -1,0 +1,11 @@
+{
+  "schemaVersion": "1.0",
+  "operationId": "op.bad.revise",
+  "mode": "revise",
+  "instruction": "Move the encoder.",
+  "interactionMode": "auto",
+  "document": {
+    "documentId": "method-figure"
+  },
+  "output": {}
+}

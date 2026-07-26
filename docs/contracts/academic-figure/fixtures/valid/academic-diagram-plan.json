@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "1.0",
+  "planId": "plan.uav-ris.001",
+  "status": "confirmed",
+  "family": "scenario",
+  "domain": "wireless communication",
+  "layoutProfile": "central-device-spatial",
+  "styleProfile": "academic-light",
+  "reference": {
+    "type": "builtin",
+    "id": "builtin.ris-reflection-transmission",
+    "scope": [
+      "composition"
+    ]
+  },
+  "regions": [
+    {
+      "id": "left",
+      "role": "sender",
+      "position": "left",
+      "order": 0
+    },
+    {
+      "id": "center",
+      "role": "relay",
+      "position": "center",
+      "order": 1
+    },
+    {
+      "id": "right",
+      "role": "receivers",
+      "position": "right",
+      "order": 2
+    }
+  ],
+  "entities": [
+    {
+      "id": "bs",
+      "type": "device",
+      "label": "BS",
+      "regionId": "left",
+      "importance": "secondary",
+      "assetQuery": "base station antenna"
+    },
+    {
+      "id": "uav-ris",
+      "type": "device",
+      "label": "UAV-RIS",
+      "regionId": "center",
+      "importance": "primary",
+      "assetQuery": "UAV with RIS"
+    },
+    {
+      "id": "users",
+      "type": "actor-group",
+      "label": "Users",
+      "regionId": "right",
+      "importance": "secondary",
+      "assetQuery": "users"
+    }
+  ],
+  "relations": [
+    {
+      "id": "bs-to-ris",
+      "source": {
+        "entityId": "bs",
+        "port": "right"
+      },
+      "target": {
+        "entityId": "uav-ris",
+        "port": "left"
+      },
+      "type": "wireless-link",
+      "directed": true,
+      "routingHint": "wireless-curve"
+    },
+    {
+      "id": "ris-to-users",
+      "source": {
+        "entityId": "uav-ris",
+        "port": "right"
+      },
+      "target": {
+        "entityId": "users",
+        "port": "left"
+      },
+      "type": "reflected-link",
+      "directed": true,
+      "routingHint": "reflection-path"
+    }
+  ],
+  "groups": [
+    {
+      "id": "communication-system",
+      "label": "Communication System",
+      "memberEntityIds": [
+        "bs",
+        "uav-ris",
+        "users"
+      ]
+    }
+  ],
+  "annotations": [
+    {
+      "id": "note-ris",
+      "text": "RIS-assisted link",
+      "target": {
+        "kind": "entity",
+        "id": "uav-ris"
+      },
+      "importance": "annotation"
+    }
+  ],
+  "assumptions": [
+    "The UAV carries the RIS."
+  ],
+  "unresolved": []
+}

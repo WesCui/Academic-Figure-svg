@@ -1,0 +1,371 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:academic-figure:contract:figure-audit-report:1.0",
+  "title": "Figure Audit Report Contract",
+  "description": "Audit output that distinguishes current basic Audit from the complete V2 Quality Gate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "reportId",
+    "documentId",
+    "revision",
+    "profile",
+    "render",
+    "checksExecuted",
+    "qualityGate",
+    "issues",
+    "summary",
+    "generatedAt"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/SchemaVersion"
+    },
+    "reportId": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+    },
+    "documentId": {
+      "$ref": "urn:academic-figure:contract:common:1.0#/$defs/DocumentId"
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "profile": {
+      "type": "string",
+      "enum": [
+        "baseline-audit-v1",
+        "v2-quality-gate-v1"
+      ]
+    },
+    "render": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "succeeded"
+      ],
+      "properties": {
+        "succeeded": {
+          "type": "boolean"
+        },
+        "previewPath": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/PathString"
+        },
+        "width": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "height": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "error": {
+          "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "succeeded": {
+                "const": false
+              }
+            },
+            "required": [
+              "succeeded"
+            ]
+          },
+          "then": {
+            "required": [
+              "error"
+            ]
+          }
+        }
+      ]
+    },
+    "checksExecuted": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "render",
+          "invalid-reference",
+          "bounds",
+          "overlap",
+          "small-text",
+          "density",
+          "clipped-text",
+          "connector-node-intersection",
+          "dangling-endpoint",
+          "edge-crossing",
+          "style-consistency",
+          "low-contrast"
+        ]
+      }
+    },
+    "qualityGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "complete",
+        "renderSucceeded",
+        "invalidReferences",
+        "outOfBoundsElements",
+        "criticalOverlaps",
+        "clippedTexts",
+        "connectorNodeIntersections",
+        "danglingConnectorEndpoints"
+      ],
+      "properties": {
+        "status": {
+          "type": "string",
+          "enum": [
+            "passed",
+            "failed",
+            "not-evaluated"
+          ]
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "renderSucceeded": {
+          "type": "boolean"
+        },
+        "invalidReferences": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "outOfBoundsElements": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "criticalOverlaps": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "clippedTexts": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "connectorNodeIntersections": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "danglingConnectorEndpoints": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "complete": {
+                "const": false
+              }
+            },
+            "required": [
+              "complete"
+            ]
+          },
+          "then": {
+            "properties": {
+              "status": {
+                "const": "not-evaluated"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "passed"
+              }
+            },
+            "required": [
+              "status"
+            ]
+          },
+          "then": {
+            "properties": {
+              "complete": {
+                "const": true
+              },
+              "renderSucceeded": {
+                "const": true
+              },
+              "invalidReferences": {
+                "const": 0
+              },
+              "outOfBoundsElements": {
+                "const": 0
+              },
+              "criticalOverlaps": {
+                "const": 0
+              },
+              "clippedTexts": {
+                "const": 0
+              },
+              "connectorNodeIntersections": {
+                "const": 0
+              },
+              "danglingConnectorEndpoints": {
+                "const": 0
+              }
+            }
+          }
+        }
+      ]
+    },
+    "issues": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "severity",
+          "code",
+          "category",
+          "message",
+          "elementIds",
+          "supportedFixes"
+        ],
+        "properties": {
+          "id": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          },
+          "severity": {
+            "type": "string",
+            "enum": [
+              "blocking",
+              "warning"
+            ]
+          },
+          "code": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "render",
+              "reference",
+              "bounds",
+              "overlap",
+              "text",
+              "connector",
+              "layout",
+              "style",
+              "asset",
+              "semantic"
+            ]
+          },
+          "message": {
+            "$ref": "urn:academic-figure:contract:common:1.0#/$defs/NonEmptyString"
+          },
+          "elementIds": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "$ref": "urn:academic-figure:contract:common:1.0#/$defs/Identifier"
+            }
+          },
+          "supportedFixes": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "align",
+                "distribute",
+                "resize-text-container",
+                "move-inside-canvas",
+                "equalize-peer-size",
+                "reroute-connector",
+                "normalize-style",
+                "constrain-asset-size"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blockingIssues",
+        "warnings"
+      ],
+      "properties": {
+        "blockingIssues": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "warnings": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "baseline-audit-v1"
+          }
+        },
+        "required": [
+          "profile"
+        ]
+      },
+      "then": {
+        "properties": {
+          "qualityGate": {
+            "properties": {
+              "complete": {
+                "const": false
+              },
+              "status": {
+                "const": "not-evaluated"
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "profile": {
+            "const": "v2-quality-gate-v1"
+          }
+        },
+        "required": [
+          "profile"
+        ]
+      },
+      "then": {
+        "properties": {
+          "qualityGate": {
+            "properties": {
+              "complete": {
+                "const": true
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

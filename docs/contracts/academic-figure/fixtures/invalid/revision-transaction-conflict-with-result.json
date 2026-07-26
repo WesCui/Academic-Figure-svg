@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0",
+  "transactionId": "txn.conflict",
+  "operationId": "op.conflict",
+  "documentId": "doc-1",
+  "kind": "revise",
+  "actor": {
+    "type": "agent",
+    "id": "agent"
+  },
+  "summary": "Conflicting revision.",
+  "expectedRevision": 1,
+  "sourceRevision": 2,
+  "resultingRevision": 3,
+  "status": "conflict",
+  "affectedElementIds": [],
+  "error": {
+    "code": "REVISION_CONFLICT",
+    "message": "Expected revision 1, current revision 2."
+  },
+  "createdAt": "2026-07-26T10:00:00Z"
+}

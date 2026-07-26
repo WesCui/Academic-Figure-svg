@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "operationId": "op.bad.script",
+  "documentId": "method-figure",
+  "expectedRevision": 1,
+  "actor": {
+    "type": "agent",
+    "id": "agent"
+  },
+  "summary": "Execute arbitrary SVG.",
+  "scope": {
+    "kind": "document"
+  },
+  "operations": [
+    {
+      "op": "execute-script",
+      "script": "alert(1)"
+    }
+  ]
+}

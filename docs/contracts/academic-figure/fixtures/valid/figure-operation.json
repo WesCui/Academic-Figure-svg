@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0",
+  "operationId": "op.uav-ris.revise.002",
+  "documentId": "uav-ris-system",
+  "expectedRevision": 12,
+  "actor": {
+    "type": "agent",
+    "id": "claude-code"
+  },
+  "summary": "Replace the UAV asset and relayout the receiver region.",
+  "scope": {
+    "kind": "region",
+    "targetIds": [
+      "right"
+    ]
+  },
+  "operations": [
+    {
+      "op": "replace-asset",
+      "elementId": "uav-ris",
+      "assetId": "workspace.custom-uav"
+    },
+    {
+      "op": "relayout-region",
+      "regionId": "right",
+      "layoutProfile": "horizontal-stack"
+    }
+  ]
+}
